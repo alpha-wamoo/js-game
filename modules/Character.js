@@ -1,7 +1,11 @@
-import Keyboard from "./Keyboard.js";
+import {Keyboard, Stage, FPS} from "../modules.js";
 /**
- * @typedef {{x, y}} Position
+ * @typedef {import("../modules").Position} Position
+ * @typedef {import("../modules").Direction} Direction
+ * @typedef {import("../modules").CharacterTypeId} CharacterTypeId
  */
+
+let idCnt = 0;
 
 /**
  * @class
@@ -15,15 +19,33 @@ export default class Character{
     speed;
     /**@type {number} */
     size;
+    /**@type {number} */
+    id;
+    /**@type {CharacterTypeId} */
+    typeId;
+    /**@type {number} */
+    max_hp;
+    /**@type {number} */
+    hp;
     /**
      * @constructor
-     * @param {Position} pos 
+     * @param {CharacterTypeId} typeId
+     * @param {string} imgSrc
+     * @param {Position} pos
+     * @param {number} size
+     * @param {number} speed
+     * @param {number} max_hp
      */
-    constructor(src, pos, size){
+    constructor(typeId, imgSrc, pos, size, max_hp){
+        this.typeId = typeId;
         this.img = new Image();
-        this.img.src = src;
+        this.img.src = imgSrc;
         this.pos = pos;
         this.size = size;
+        this.max_hp = max_hp;
+        this.hp = max_hp;
+        this.id = idCnt;
+        idCnt++;
     }
 
     /**
@@ -33,6 +55,24 @@ export default class Character{
     setImage(src){
         this.img = new Image();
         this.img.src = src;
+        return this;
+    }
+
+    /**
+     * @param {Position} pos 
+     * @returns {Character}
+     */
+    setPos(pos){
+        this.pos = pos;
+        return this;
+    }
+
+    /**
+     * @param {number} size 
+     * @returns {Character}
+     */
+    setSize(size){
+        this.size = size;
         return this;
     }
 
@@ -65,7 +105,29 @@ export default class Character{
         };
     }
 
+    /**
+     * @param {Stage} stage
+     * @param {Direction} direction
+     */
+    move(stage, dire){
+        const deltaPos = this.speed / FPS;
+        if(dire === "right" && stage.isInside({ x: this.pos.x + deltaPos + this.size/2 })) this.pos.x += deltaPos;
+        if(dire === "left" && stage.isInside({ x: this.pos.x - deltaPos - this.size/2 })) this.pos.x -= deltaPos;
+        if(dire === "down" && stage.isInside({ y: this.pos.y + deltaPos + this.size/2 })) this.pos.y += deltaPos;
+        if(dire === "up" && stage.isInside({ y: this.pos.y - deltaPos - this.size/2 })) this.pos.y -= deltaPos;
+    }
+
     updatePosition(){
         // TODO: player以外の位置更新
+    }
+
+    /**
+     * hpを操作し、返します
+     * @param {(hp: number) => number}
+     * @returns {number}
+     */
+    updateHp(operation){
+        this.hp = operation(this.hp);
+        return this.hp;
     }
 }

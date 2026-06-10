@@ -1,3 +1,4 @@
+/**@type {{ [key: string]: boolean }} */
 const _keysList = {};
 export default {
     keysPressed: _keysList,
