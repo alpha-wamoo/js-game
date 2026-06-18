@@ -1,0 +1,26 @@
+.frame {
+    position: relative;
+    width: 2048px;
+    height: 2048px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+/* 各キャンバスを重ねる */
+.frame canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+}
+
+/* レイヤー順（z-index）を指定 */
+#bg {
+  z-index: 1; /* 背景 */
+}
+#object {
+  z-index: 2; /* 敵・エフェクト */
+}
+#ui {
+  z-index: 3; /* UI（ゲージ・スコアなど） */
+}

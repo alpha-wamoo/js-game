@@ -1,17 +1,81 @@
-/**@type {{ [key: string]: boolean }} */
-const _keysList = {};
-export default {
-    keysPressed: _keysList,
+/**@module Keyboard */
+
+
+/**
+ * - キーボード入力を管理します
+ */
+export default class Keyboard{
+    /**@private @type {Map<string, number>} */
+    static _keysMap = new Map();
+
     /**
-     * @param {GlobalEventHandlers} ev 
+     * イベントデータから、押されたキーを表す文字列を取得します
+     * @private @method
+     * @param {KeyboardEvent} ev 
+     * @returns {string}
      */
-    keydown(ev){
-        _keysList[ev.key.toLowerCase()] = true;
-    },
+    static _getKey(ev){
+        return ev.key.toLowerCase();
+    }
+
     /**
-     * @param {GlobalEventHandlers} ev
+     * あるキーが押された時間の長さを保持します(ms)
+     * @public @method
+     * @param {string} key 時間を取得したいキー
+     * @returns {number}
      */
-    keyup(ev){
-        _keysList[ev.key.toLowerCase()] = false;
+    static keyPressed(key){
+        return Keyboard._keysMap.get(key) ?? 0;
+    }
+
+    /**
+     * キーが押されているかを判定します
+     * @public @method
+     * @param {string} key 判定したいキー
+     * @returns {boolean} 推されていればtrue.
+     */
+    static isPressed(key){
+        return Keyboard.keyPressed(key) >= 1;
+    }
+
+    /**
+     * 与えられたキーが全て押されているかを判定します
+     * @public @method
+     * @param  {string[]} keys 判定対象のキー
+     * @returns {boolean} 全て押されていればtrue.
+     */
+    static isAllPressed(...keys){
+        return keys.every(key => Keyboard.isPressed(key));
+    }
+
+    /**
+     * キーが押されたときに実行します
+     * @public @method
+     * @param {KeyboardEvent} ev 
+     */
+    static keydown(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const key = Keyboard._getKey(ev);
+        const prevValue = Keyboard._keysMap.get(key) ?? 0;
+        this._keysMap.set(key, /*prevValue +*/ 1);
+        console.log(`down: ${key}`);
+    }
+
+    /**
+     * キーから離されたときに実行します
+     * @public @method
+     * @param {KeyboardEvent} ev
+     */
+    static keyup(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const key = Keyboard._getKey(ev);
+        Keyboard._keysMap.delete(key);
+        console.log(`up: ${key}`);
+    }
+
+    static clear(){
+        Keyboard._keysMap.clear();
     }
 }

@@ -1,0 +1,17 @@
+{
+    "RUN_FASTER": {
+        "SPEED_RATE": 2,
+        "DURATION": 1000,
+        "INTERVAL": 5000,
+        "CNT_UPDATE_INTERVAL": 10
+    },
+    "MAGIC": {
+        "INTERVAL": 45000,
+        "ATK_REACH": 750,
+        "DAMAGE": 25,
+        "BUFF_DELAY_SEC": 1,
+        "BUFF_DURATION_SEC": 12,
+        "SPEED_RATE": 1.5,
+        "CNT_UPDATE_INTERVAL": 50
+    }
+}

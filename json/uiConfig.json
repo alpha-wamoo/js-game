@@ -1,0 +1,13 @@
+{
+    "TITLE": {
+        "TITLE_SIZE": 120,
+        "SUBTITLE_SIZE": 80,
+        "LINE_MARGIN": 10
+    },
+    "SCORE_UPDATE_POPUP": {
+        "DURATION": 400,
+        "SIZE": 40,
+        "RGB_POSITIVE": "rgba(62, 231, 203, $a)",
+        "RGB_NEGATIVE": "rgba(209, 64, 64, $a)"
+    }
+}

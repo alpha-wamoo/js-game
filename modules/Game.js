@@ -1,80 +1,343 @@
-import {Keyboard, Stage, CANV_SIZE, Character} from "../modules.js";
+/**@module Game */
+import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager} from "../modules.js";
 
-class Game{
-    /**@type {HTMLCanvasElement | null} */
-    _canv;
-    /**@type {CanvasRenderingContext2D | null} */
-    _ctx;
-    /**@type {Stage} */
+/**
+ * @typedef Contexts
+ * @prop {CanvasRenderingContext2D?} bg
+ * @prop {CanvasRenderingContext2D?} object
+ * @prop {CanvasRenderingContext2D?} ui
+ * 
+ * @typedef Canvases
+ * @prop {HTMLCanvasElement} bg
+ * @prop {HTMLCanvasElement} object
+ * @prop {HTMLCanvasElement} ui
+ */
+
+/**
+ * - ゲームの初期化、開始、ゲームループを行います.
+ * - Stageインスタンスを持ちます.
+ * @class
+ */
+export default class Game{
+    /**@private @type {Contexts} */
+    _contexts = {};
+    /**@private @type {Canvases} */
+    _canvs = {};
+    /**@private @type {Stage} */
     _stage;
-    /**@type {Character} */
+    /**@private @type {Character} */
     _pl;
-    /**@type {number} */
+    /**@private @type {number} */
     _score = 0;
+    /**@private @type {number} */
+    _frame = 0;
+    /**@private @type {HTMLAudioElement} */
+    _bgm;
+    /**@private @type {HTMLCanvasElement} */
+    _canv;
 
     /**
      * @constructor
-     * @param {HTMLCanvasElement} canv 
-     * @param {Stage} stage
+     * @param {Canvases} canvs
+     * @param {Contexts} ctxs - 全レイヤーのコンテキスト
+     * @param {Stage} stage - ステージ
      */
-    constructor(canv, stage){
-        this._canv = canv;
-        this._ctx = canv.getContext("2d");
+    constructor(canvs, ctxs, stage){
+        this._canvs = canvs;
+        this._contexts = ctxs;
         this._stage = stage;
-
-        const PL_SIZE = CANV_SIZE/8, PL_SPEED = CANV_SIZE/4, PL_IMG_SRC = "./dalmatian.png";
-        this._pl = stage.spawnChr("player", PL_IMG_SRC, { x: 100, y: 400 }, PL_SIZE, PL_SPEED);
+        this._boundMainLoop = this.mainLoop.bind(this);
     }
 
     /**
-     * ゲームを開始します
+     * - Gameを開始可能な状態に初期化します.
+     * @public
+     * @static @async @method
+     * @param {Canvases} canvs
+     * @param {Contexts} ctxs - 全レイヤーのコンテキスト
+     * @param {Stage} stage - ステージ
+     * @returns {Game} this
+     */
+    static async init(canvs, ctxs, stage){
+        const game = new Game(canvs, ctxs, stage)
+        .setPlayer(await stage.spawnChr("player"));
+        await Drawer.setContexts(game._contexts);
+        Drawer.replaceBG(JsonData.bgDefinition.DEFAULT);
+
+        return game;
+    }
+
+    /**
+     * - ゲームを開始します.
+     * @public
+     * @method
+     * @returns {void}
      */
     start(){
-        document.onkeydown = Keyboard.keydown;
-        document.onkeyup = Keyboard.keyup;
+        const operationCanv = document.getElementById("ui");
+        operationCanv.tabIndex = 0;
+        operationCanv.focus();
 
-        new Audio("../sounds/slash-sword.mp3").play();
-        this.mainLoop();
+        // subscribe keyboard
+        // window.addEventListener("keydown", ev => {
+        //     if(ev.key === " ") ev.preventDefault();
+        // }, {passive: false});
+        operationCanv.onkeydown = ev => Keyboard.keydown(ev);
+        operationCanv.onkeyup = ev => Keyboard.keyup(ev);
+        operationCanv.onblur = ev => Keyboard.clear();
+
+        // sound
+        SoundManager.play("start");
+        this._bgm = SoundManager.play("battle_bgm_default");
+
+        // call interval
+        this._boundMainLoop();
+    }
+
+    finish(){
+        
     }
 
     /**
-     * 毎フレーム実行されます
+     * - 毎フレーム実行されます.
+     * @public
+     * @method
      */
     mainLoop(){
-        this._score++;
-        this.update();
-        this.draw();
+        Drawer.clear("object");
+        Drawer.clear("ui");
 
-        requestAnimationFrame(this.mainLoop.bind(this));
+        this._pl = this._stage._validChrs.find(chr => chr.typeId === "player");
+        const {NATURAL_HEAL, BULLET} = JsonData.config;
+        if(this.isInterval(0.5 * 1000)) this._stage.spawnRandEnemy();
+        if(this.isInterval(1000)) this.updateScore(s => s + 1, false);
+        if(this.isInterval(NATURAL_HEAL.INTERVAL)) this._pl.applyHeal(NATURAL_HEAL.HP, { allowSound: true, allowAnimation: true });
+        this.updateFrame();
+        this.drawFrame();
+
+        this._frame++;
+        if(this._pl) requestAnimationFrame(this._boundMainLoop);
     }
 
     /**
-     * 描画情報を更新します
+     * - フレームごとの状態を更新します.
+     * @public
+     * @method
      */
-    update(){
-        if(Keyboard.keysPressed.d) this._pl.move(this._stage, "right");
-        if(Keyboard.keysPressed.a) this._pl.move(this._stage, "left");
-        if(Keyboard.keysPressed.w) this._pl.move(this._stage, "up");
-        if(Keyboard.keysPressed.s) this._pl.move(this._stage, "down");
-    }
+    updateFrame(){
+        const stage = this._stage;
+        const pl = this._pl;
+        const enemies = stage.getValidChrs(chr => chr !== pl);
+        const bullets = stage.getValidBlts();
+        const {RUN} = JsonData.config;
+    
 
-    draw(){
-        // rectangle
-        this._ctx.fillStyle = "rgb(0, 0, 0)";
-        this._ctx.fillRect(0, 0, CANV_SIZE, CANV_SIZE);
+        // bullets
+        bullets.forEach(blt => {
+            blt.updatePos();
+            if(!stage.isInsidePos(blt.getPos())) stage.killBlt(blt);
+        });
+
 
         // score
-        this._ctx.fillStyle = "rgb(255, 255, 255)";
-        this._ctx.font = "16pt Arial";
-        const scoreLabel = `Score : ${this._score}`;
-        this._ctx.fillText(scoreLabel, CANV_SIZE - this._ctx.measureText(scoreLabel).width - 40, 40);
+        // TODO: score
 
-        // characters
-        this._stage.getChrs().forEach(chr => {
-            const center = chr.getCenter();
-            this._ctx.drawImage(chr.img, center.x, center.y, chr.size, chr.size);
+
+        // keyboard monitor
+        if(Keyboard.isPressed("d")) this._pl.move(this._stage, "right");
+        if(Keyboard.isPressed("a")) this._pl.move(this._stage, "left");
+        if(Keyboard.isPressed("w")) this._pl.move(this._stage, "up");
+        if(Keyboard.isPressed("s")) this._pl.move(this._stage, "down");
+        if(Keyboard.isPressed(" ")) this._pl.shootBullet(this._stage);
+        // 重い原因を確認するため、コメントアウト
+        // if(Keyboard.isPressed("shift") && Keyboard.isPressed("enter")) this._pl.useMagic(this._stage, this);    
+        // else if(Keyboard.isPressed("enter")) this._pl.runFaster();
+
+        // enemies move
+        enemies.forEach(enemy => {
+            enemy.enemyMove();
+            if(!stage.isInsidePos(enemy.pos)) stage.killChr(enemy);
+            enemy.frame++;
+        });
+
+        const deltaMs = 1000 / FPS;
+        stage.getValidChrs().forEach(chr => chr.decrementUnbeatableCnt(deltaMs));
+
+        // TODO: 当たり判定のアルゴリズムを最適化する. 複数の領域に分割して管理.
+        // -> HittingDetector thread 
+        // const dto = constructDTO({player: this._pl, enemies, bullets});
+        /**@import {DtoToMain} from "./worker/HittingDetector.js" */
+        // WorkManager.activate("HittingDetector", dto, (ev) => {
+            /**@type {DtoToMain?} */
+            /*
+            const detectedPairs = ev.data;
+            if(!detectedPairs) return;
+
+            // player hit with enemy
+            detectedPairs.pl_enemy.forEach(enemyId => {
+                const enemy = stage.getChrPool().getByIdx(enemyId);
+                if(!enemy) return;
+                Drawer.enqueueAnimation("effect_small_explode", Util.averagePos(enemy.pos, pl.pos));
+                enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
+                    runDeath: dead => {
+                        this.updateScore(s => s + dead.rewardScore);
+                        stage.killChr(dead);
+                    }
+                });
+                this._pl.applyDamage(enemy.hitDmg, {
+                    allowSound: true,
+                    runDeath: dead => stage.killChr(dead)
+                });
+            });
+
+            // enemy hits with bullet
+            detectedPairs.enemy_blt.forEach(ids => {
+                const enemy = stage.getChrPool().getByIdx(ids.enemy);
+                const blt = stage.getBltPool().getByIdx(ids.blt);
+                if(!enemy || !blt) return;
+
+                enemy.applyDamage(blt.getDmg(), {
+                    allowSound: true,
+                    runDeath: deadChr => {
+                        if(blt.getOwner() === this._pl) this.updateScore(s => s + deadChr.rewardScore);
+                        stage.killChr(deadChr);
+                    }
+                });
+                Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
+                stage.killBlt(blt);
+            });*/
+        // });
+
+        // -> player hit with enemy 
+        const {Pos, GameObj} = Util;
+        enemies.filter(enemy => Util.GameObj.isHittingTo(this._pl, enemy)).forEach(enemy => {
+            Drawer.enqueueAnimation("effect_small_explode", Util.Pos.ave(enemy.pos, pl.pos));
+            enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
+                runDeath: dead => {
+                    this.updateScore(s => s + dead.rewardScore);
+                    stage.killChr(dead);
+                }
+            });
+            this._pl.applyDamage(enemy.hitDmg, {
+                allowSound: true,
+                runDeath: dead => stage.killChr(dead)
+            });
+        });
+
+        // -> enemy hits with bullet
+        enemies.forEach(enemy => {
+            stage.getValidBlts().filter(blt => Util.GameObj.isHittingTo(enemy, blt))
+            .forEach(blt => {
+                enemy.applyDamage(blt.getDmg(), {
+                    allowSound: true,
+                    runDeath: deadChr => {
+                        if(blt.getOwner() === this._pl) this.updateScore(s => s + deadChr.rewardScore);
+                        stage.killChr(deadChr);
+                    }
+                });
+                Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
+                stage.killBlt(blt);
+            });
         });
     }
-}
 
-export default Game;
+    /**
+     * - 画面構成要素を描画します
+     * @public
+     * @method
+     */
+    // TODO: 動的要素もキューからまとめて描画する実装に変更
+    drawFrame(){
+        const stage = this._stage;
+        const enemies = stage.getValidChrs(chr => chr.typeId !== "player");
+        const timeFromStart = this.getTimeFromStart();
+    
+        Drawer.drawStatusField("Arial", [
+            { size: 45, text: `[ ${timeFromStart.min} : ${timeFromStart.sec} ]` },
+            { size: 25,text: `SCORE: ${this._score}` }
+        ]);
+        Drawer.drawBullets(stage.getValidBlts());
+        Drawer.drawCharacters(stage.getValidChrs());
+        Drawer.drawEnemiesHealthBar(enemies, "rgb(225, 200, 255)", "rgb(166, 41, 149)");
+        Drawer.drawPlayerHealthBar(this._pl, "rgb(168, 5, 105)", "rgb(67, 111, 255)");
+        Drawer.drawRunnableBar(this._pl.runnableCnt);
+        Drawer.drawMagicUsableBar(this._pl.magicUsableCnt);
+        Drawer.drawQueuedAnimations();
+        Drawer.drawQueuedDynamicTexts();
+    }
+
+    /**
+     * @private
+     * @method
+     * @param {Character} pl 
+     * @returns {Game} this
+     */
+    setPlayer(pl){
+        this._pl = pl;
+        return this;
+    }
+
+    /**
+     * @private
+     * @method
+     * @param {number} ms 
+     * @returns {boolean} this
+     */
+    isInterval(ms){
+        return this._frame % (FPS * ms / 1000) === 1;
+    }
+
+    /**
+     * - スコアを与えた関数によって変更します.
+     * @private
+     * @method
+     * @param {(score: number) => number} operation - 更新処理
+     * @param {boolean} [allowPopup] - スコア変化量のポップアップを描画します. default: true.
+     * @returns {number} 更新後のスコア
+     */
+    updateScore(operation, allowPopup = true){
+        const prevScore = this._score;
+        this._score = Math.floor(operation(this._score));
+        if(this._score < 0) this._score = 0;
+        if(allowPopup){
+            const pl = this._pl;
+            // const popupPos = Util.Pos.add(pl.pos, {x: pl.size/2, y: -pl.size/2});
+            const popupPos = Util.Pos.move(pl.pos, { diffX: pl.size/2 });
+            Drawer.drawScoreUpdatePopup(this._score - prevScore, popupPos);
+        }
+
+        if(prevScore < 1000 && 1000 <= this._score){
+            // TODO: レベルアップ処理などを書く
+        }
+        return this._score;
+    }
+
+    /**
+     * - ゲーム開始からの時間を返します
+     * @private
+     * @method
+     * @returns {{sec: string, min: string}} secとminを00形式の文字列で返します
+     */
+    getTimeFromStart(){
+        const totalSec = this._frame / FPS;
+        const time ={
+            sec: Math.floor(totalSec % 60),
+            min: Math.floor(totalSec / 60)
+        };
+        const timeTexts = {
+            sec: String(time.sec).padStart(2, "0"),
+            min: String(time.min).padStart(2, "0")
+        };
+        return timeTexts;
+    }
+
+    /**
+     * - ステージを取得します.
+     * @public
+     * @method
+     * @returns {Stage} - ステージ
+     */
+    getStage(){
+        return this._stage;
+    }
+}

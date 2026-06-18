@@ -1,12 +1,36 @@
 /**
- * @typedef {{x: number, y: number}} Position
- * @typedef {"right" | "left" | "up" | "down"} Direction
- * @typedef {{min: Position, max: Position}} Bounds
- * @typedef {"player" | "basic"} CharacterTypeId
+ * @module modules
+ * 
+ * @typedef {{x: number, y: number}} Position xy座標
+ * @typedef {"right" | "left" | "up" | "down"} Direction 4方向
+ * @typedef {{min: Position, max: Position}} Bounds 最小座標と最大座標によってあらわされる矩形範囲
  */
 
+// constants
+/**@constant */
+export const FPS = 60;
+/**@constant */
+export const MILISEC_PER_FRAME = 1000 / FPS;
+
+
+export {default as WorkManager} from "./modules/WorkManager.js";
+export {default as ObjectPool} from "./modules/ObjectPool.js";
+export {default as Queue} from "./modules/Queue.js";
+export {default as JsonData} from "./modules/JsonData.js";
+export {default as Util} from "./modules/Util.js";
+export {default as SoundManager} from "./modules/SoundManager.js";
 export {default as Character} from "./modules/Character.js";
-export {FPS, CANV_SIZE, MILISEC_PER_FRAME} from "./modules/constants.js";
 export {default as Keyboard} from "./modules/Keyboard.js";
 export {default as Stage} from "./modules/Stage.js";
+export {default as Bullet} from "./modules/Bullet.js";
+export {default as Drawer} from "./modules/Drawer.js";
 export {default as Game} from "./modules/Game.js";
+
+
+// prototypes
+Math.rangedRandom = function(min, max){
+    return this.random() * (max - min) + min;
+}
+Array.prototype.choose = function(){
+    return this[Math.floor(Math.random() * this.length)];
+}

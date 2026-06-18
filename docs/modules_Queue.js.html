@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: modules/Queue.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: modules/Queue.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @template Item
+ */
+export default class Queue{
+    /**
+     * キューのデータ
+     * @private
+     * @type {Item[]}
+    */
+    _items = null;
+
+    /**
+     * @public
+     * @constructor
+     * @param {Item[]?} preset
+     */
+    constructor(preset = []){
+        this._items = preset;
+    }
+
+    /**
+     * エンキューします
+     * @public
+     * @param {Item} item
+     */
+    enqueue(item){
+        this._items.push(item);
+    }
+
+    /**
+     * デキューします
+     * @public
+     * @returns {Item?} 取り出した要素. 空ならばnull.
+     */
+    dequeue(){
+        if(this.isEmpty()) return null;
+        return this._items.shift();
+    }
+
+    /**
+     * 先頭の要素を非破壊的に取得します.
+     * @public
+     * @returns {Item?} 先頭の要素. 空ならばnull.
+     */
+    peek(){
+        if(this.isEmpty())  return null
+        return this._items[0];
+    }
+
+    /**
+     * キューが空であることを判定します
+     * @public
+     * @returns {boolean} キューが空ならばtrue
+     */
+    isEmpty(){
+        return this._items.length === 0;
+    }
+
+    /**
+     * キューをクリアします
+     */
+    clear(){
+        this._items.length = 0;
+    }
+
+    /**
+     * キューの要素数
+     * @public
+     * @type {number}
+     */
+    get length(){
+        return this._items.length;
+    }
+
+    /**
+     * キューの配列データ
+     * @type {Item[]}
+     */
+    get items(){
+        return this._items;
+    }
+
+    /**
+     * @param {Item[]} items
+     */
+    setItems(items){
+        this._items = items;
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module.html#.exports">exports</a></li><li><a href="module.exports_module.exports.html">exports</a></li></ul><h3>Global</h3><ul><li><a href="global.html#AnimationDefinitionsEnum">AnimationDefinitionsEnum</a></li><li><a href="global.html#SoundDefinitions">SoundDefinitions</a></li><li><a href="global.html#activate">activate</a></li><li><a href="global.html#add">add</a></li><li><a href="global.html#addPos">addPos</a></li><li><a href="global.html#applyDamage">applyDamage</a></li><li><a href="global.html#applyHeal">applyHeal</a></li><li><a href="global.html#averagePos">averagePos</a></li><li><a href="global.html#bgDefinition">bgDefinition</a></li><li><a href="global.html#centerToMin">centerToMin</a></li><li><a href="global.html#clear">clear</a></li><li><a href="global.html#config">config</a></li><li><a href="global.html#dequeue">dequeue</a></li><li><a href="global.html#drawBullets">drawBullets</a></li><li><a href="global.html#drawCharacters">drawCharacters</a></li><li><a href="global.html#drawEnemiesHealthBar">drawEnemiesHealthBar</a></li><li><a href="global.html#drawFrame">drawFrame</a></li><li><a href="global.html#drawMagicUsableBar">drawMagicUsableBar</a></li><li><a href="global.html#drawPlayerHealthBar">drawPlayerHealthBar</a></li><li><a href="global.html#drawQueuedAnimations">drawQueuedAnimations</a></li><li><a href="global.html#drawQueuedDynamicTexts">drawQueuedDynamicTexts</a></li><li><a href="global.html#drawRunnableBar">drawRunnableBar</a></li><li><a href="global.html#drawScoreUpdatePopup">drawScoreUpdatePopup</a></li><li><a href="global.html#drawStatusField">drawStatusField</a></li><li><a href="global.html#drawText">drawText</a></li><li><a href="global.html#drawTitle">drawTitle</a></li><li><a href="global.html#elem">elem</a></li><li><a href="global.html#enemiesDefinition">enemiesDefinition</a></li><li><a href="global.html#enemyMove">enemyMove</a></li><li><a href="global.html#enqueue">enqueue</a></li><li><a href="global.html#enqueueAnimation">enqueueAnimation</a></li><li><a href="global.html#enqueueDynamicText">enqueueDynamicText</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#getBltPool">getBltPool</a></li><li><a href="global.html#getByIdx">getByIdx</a></li><li><a href="global.html#getCenter">getCenter</a></li><li><a href="global.html#getChrPool">getChrPool</a></li><li><a href="global.html#getColor">getColor</a></li><li><a href="global.html#getContext">getContext</a></li><li><a href="global.html#getDistanceTo">getDistanceTo</a></li><li><a href="global.html#getDmg">getDmg</a></li><li><a href="global.html#getId">getId</a></li><li><a href="global.html#getLevel">getLevel</a></li><li><a href="global.html#getMotionByKey">getMotionByKey</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getPos">getPos</a></li><li><a href="global.html#getSize">getSize</a></li><li><a href="global.html#getStage">getStage</a></li><li><a href="global.html#getTimeFromStart">getTimeFromStart</a></li><li><a href="global.html#getValidBlts">getValidBlts</a></li><li><a href="global.html#getValidChrs">getValidChrs</a></li><li><a href="global.html#incrementLevel">incrementLevel</a></li><li><a href="global.html#init">init</a></li><li><a href="global.html#initAll">initAll</a></li><li><a href="global.html#isAllPressed">isAllPressed</a></li><li><a href="global.html#isEmpty">isEmpty</a></li><li><a href="global.html#isInsidePos">isInsidePos</a></li><li><a href="global.html#isInterval">isInterval</a></li><li><a href="global.html#isPressed">isPressed</a></li><li><a href="global.html#isSameWith">isSameWith</a></li><li><a href="global.html#items">items</a></li><li><a href="global.html#keyPressed">keyPressed</a></li><li><a href="global.html#keydown">keydown</a></li><li><a href="global.html#keyup">keyup</a></li><li><a href="global.html#killBlt">killBlt</a></li><li><a href="global.html#killChr">killChr</a></li><li><a href="global.html#length">length</a></li><li><a href="global.html#loadContext">loadContext</a></li><li><a href="global.html#mainLoop">mainLoop</a></li><li><a href="global.html#map">map</a></li><li><a href="global.html#mapPos">mapPos</a></li><li><a href="global.html#minToCenter">minToCenter</a></li><li><a href="global.html#move">move</a></li><li><a href="global.html#mulPos">mulPos</a></li><li><a href="global.html#peek">peek</a></li><li><a href="global.html#play">play</a></li><li><a href="global.html#playerDefinition">playerDefinition</a></li><li><a href="global.html#posSize">posSize</a></li><li><a href="global.html#ptToPx">ptToPx</a></li><li><a href="global.html#release">release</a></li><li><a href="global.html#replaceBG">replaceBG</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#runFaster">runFaster</a></li><li><a href="global.html#scale">scale</a></li><li><a href="global.html#setBulletDmg">setBulletDmg</a></li><li><a href="global.html#setColor">setColor</a></li><li><a href="global.html#setContexts">setContexts</a></li><li><a href="global.html#setHitDmg">setHitDmg</a></li><li><a href="global.html#setImage">setImage</a></li><li><a href="global.html#setItems">setItems</a></li><li><a href="global.html#setLevel">setLevel</a></li><li><a href="global.html#setMotion">setMotion</a></li><li><a href="global.html#setPlayer">setPlayer</a></li><li><a href="global.html#setPos">setPos</a></li><li><a href="global.html#setRewardScore">setRewardScore</a></li><li><a href="global.html#setSize">setSize</a></li><li><a href="global.html#setSpeed">setSpeed</a></li><li><a href="global.html#setUnbeatableTime">setUnbeatableTime</a></li><li><a href="global.html#shootBullet">shootBullet</a></li><li><a href="global.html#skillDefinition">skillDefinition</a></li><li><a href="global.html#sleep">sleep</a></li><li><a href="global.html#soundDefinition">soundDefinition</a></li><li><a href="global.html#spawnBlt">spawnBlt</a></li><li><a href="global.html#spawnChr">spawnChr</a></li><li><a href="global.html#spawnRandEnemy">spawnRandEnemy</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#terminate">terminate</a></li><li><a href="global.html#toAlpha">toAlpha</a></li><li><a href="global.html#uiConfig">uiConfig</a></li><li><a href="global.html#updateFrame">updateFrame</a></li><li><a href="global.html#updateHp">updateHp</a></li><li><a href="global.html#updatePos">updatePos</a></li><li><a href="global.html#updateScore">updateScore</a></li><li><a href="global.html#useMagic">useMagic</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Jun 17 2026 14:46:17 GMT+0900 (日本標準時)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

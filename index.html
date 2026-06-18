@@ -5,18 +5,15 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>GameTemplate</title>
-	<style type="text/css">
-		#gamecanvas {
-			position: absolute;
-			top: 20px;
-			left: 20px;
-			z-index: 1;
-		}
-	</style>
+	<title>Shooting</title>
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<canvas id="gamecanvas" width="1024" height="1024"></canvas>
+	<div class="frame">
+		<canvas id="bg" width="2048" height="2048"></canvas>
+		<canvas id="object" width="2048" height="2048"></canvas>
+		<canvas id="ui" width="2048" height="2048" tabindex="0"></canvas>
+	</div>
 	<script type="module" src="main.js"></script>
 </body>
 </html>

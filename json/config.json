@@ -1,0 +1,34 @@
+{
+    "CANV_H": 850,
+    "CANV_W": 1200,
+    "BULLET": {
+        "SPEED": 800,
+        "SIZE": 12,
+        "SHOOTABLE_INTERVAL_SEC": 0.125,
+        "COLOR" : "rgb(144, 202, 255)"
+    },
+    "ENPOWERED_BULLET": {
+        "SPEED": 1250,
+        "SIZE": 24,
+        "SHOOTABLE_INTERVAL_SEC": 0.1,
+        "COLOR": "rgb(227, 194, 85)"
+    },
+    "NATURAL_HEAL": {
+        "INTERVAL": 10000,
+        "HP": 4
+    },
+    "ENEMY": {
+        "ALPHA_RATE": 0.05,
+        "ALPHA": {
+            "SPEED_RATE": 0.8,
+            "DMG_RATE": 1.75,
+            "HP_RATE": 2.75,
+            "SIZE_RATE": 1.3,
+            "REWARD_RATE": 1.75
+        }
+    },
+    "STAGE": {
+        "CHARACTERS_CAPACITY": 100,
+        "BULLETS_CAPACITY": 100
+    }
+}

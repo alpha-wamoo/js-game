@@ -1,0 +1,12 @@
+{
+    "size": 80,
+    "speed": 300,
+    "max_hp": 200,
+    "imgSrc": "./images/character/dalmatian.png",
+    "beginPos": {
+        "x": 600,
+        "y": 750
+    },
+    "bltDmg": 25,
+    "unbeatableTime": 1000
+}

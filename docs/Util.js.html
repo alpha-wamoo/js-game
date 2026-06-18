@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Util.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Util.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**@module Util */
+/**
+ * @typedef {import("../modules").Position} Position
+ */
+
+/**
+ * - ユーティリティメソッドを呼び出します.
+ * @class
+ */
+export default class Util{
+    /**
+     * - 待機します
+     * @public @static @method
+     * @param {number} ms 
+     * @returns {Promise&lt;void>}
+     */
+    static sleep(ms){
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    /**
+     * - 二点の平均を求めます
+     * @public @static @method
+     * @deprecated
+     * @param {Position} a 
+     * @param {Position} b 
+     * @returns {Position}
+     */
+    static averagePos(a, b){
+        return {
+            x: (a.x + b.x)/2,
+            y: (a.y + b.y)/2
+        };
+    }
+
+    /**
+     * - 二点の合計を求めます
+     * @deprecated
+     * @public @static @method
+     * @param {Position} a 
+     * @param {Position} b 
+     * @returns {Position}
+     */
+    static addPos(a, b){
+        return {
+            x: a.x + b.x,
+            y: a.y + b.y
+        };
+    }
+
+    /**
+     * - 座標の絶対値を求めます
+     * @deprecated
+     * @param {Position} pos 
+     * @returns {number}
+     */
+    static posSize(pos){
+        return Math.sqrt(pos.x * pos.x + pos.y * pos.y);
+    }
+
+    /**
+     * @deprecated
+     * @param {number} num 
+     * @param {Position} pos 
+     * @returns 
+     */
+    static mulPos(num, pos){
+        return {
+            x: pos.x * num,
+            y: pos.y * num
+        }
+    }
+
+    /**
+     * @deprecated
+     * @param {Position} pos 
+     * @param {(value: number) => } mapFn 
+     * @returns 
+     */
+    static mapPos(pos, mapFn){
+        return {
+            x: mapFn(pos.x),
+            y: mapFn(pos.y)
+        };
+    }
+
+    /**
+     * - 座標操作に関するオブジェクト
+     * @public @static
+     */
+    static Pos = {
+        /**
+         * @method
+         * @param {Position} pos - 写像される座標です
+         * @param {(val: number, axis: "x" | "y") => number} mapFn - x, yの更新を行います
+         * @returns {Position}
+         */
+        map(pos, mapFn){
+            return {
+                x: mapFn(pos?.x ?? 0, "x"),
+                y: mapFn(pos?.y ?? 0, "y")
+            };
+        },
+
+        /**
+         * - 座標同士を加算します
+         * @method
+         * @param {Position} pos1 
+         * @param {Position} pos2 
+         * @returns {Position}
+         */
+        add(pos1, pos2){
+            return {
+                x: (pos1.x ?? 0) + (pos2.x ?? 0),
+                y: (pos1.y ?? 0) + (pos2.y ?? 0)
+            };
+        },
+
+        /**
+         * - スカラー倍します
+         * @method
+         * @param {number} scalar 
+         * @param {Position} pos 
+         * @returns {Position}
+         */
+        scale(scalar, pos){
+            return {
+                x: (pos.x ?? 0) * factor,
+                y: (pos.y ?? 0) * factor
+            };
+        },
+
+        /**
+         * - 領域の中点と大きさから、最小座標（左上）を求めます
+         * @method
+         * @param {Position} centerPos 
+         * @param {Position} size 
+         * @returns {Position}
+         */
+        centerToMin(centerPos, size){
+            return {
+                x: centerPos.x - size.x/2,
+                y: centerPos.y - size.y/2
+            };
+        },
+
+        /**
+         * - 領域の最小座標（左上）と大きさから、中点を求めます
+         * @method
+         * @param {Position} minPos 
+         * @param {Position} size 
+         * @returns {Position}
+         */
+        minToCenter(minPos, size){
+            return {
+                x: minPos.x + size.x/2,
+                y: minPos.y + size.y/2
+            };
+        },
+
+        /**
+         * - 指定した軸方向の成分以外は0で初期化された座標を返します.
+         * @method
+         * @param {"x" | "y"} axis 軸
+         * @param {number} value 
+         */
+        elem(axis, value){
+            if(axis !== "x" &amp;&amp; axis !== "y") throw new Error("axis should be x or y.");
+            const retPos = {x: 0, y: 0};
+            retPos[axis] = value;
+            return retPos;
+        },
+
+        /**
+         * - (非破壊) 差分に従って移動した座標を返します
+         * @method
+         * @param {Position} pos 移動させる座標
+         * @param {{diffX: number, diffY: number}} param1 
+         * @returns {Position}
+         */
+        move(pos, {diffX = 0, diffY = 0}){
+            const copiedPos = {...pos};
+            copiedPos.x += diffX;
+            copiedPos.y += diffY;
+            return copiedPos;
+        }
+    }
+
+    /**
+     * - pt（ポイント）をpx（ピクセル）に変換
+     * @public @static @method
+     * @param {number} pt - ポイント値
+     * @param {number} [dpi=96] - ディスプレイのDPI（省略時は96）
+     * @returns {number} ピクセル値
+     */
+    static ptToPx(pt, dpi = 96) {
+        return pt * (dpi / 72);
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Bullet.html">Bullet</a></li><li><a href="module-Character.html">Character</a></li><li><a href="module-Drawer.html">Drawer</a></li><li><a href="module-Game.html">Game</a></li><li><a href="module-JsonData.html">JsonData</a></li><li><a href="module-Keyboard.html">Keyboard</a></li><li><a href="module-ObjectPool.html">ObjectPool</a></li><li><a href="module-Queue.html">Queue</a></li><li><a href="module-SoundManager.html">SoundManager</a></li><li><a href="module-Stage.html">Stage</a></li><li><a href="module-Util.html">Util</a></li><li><a href="module-WorkManager.html">WorkManager</a></li></ul><h3>Classes</h3><ul><li><a href="module-Bullet.html">Bullet</a></li><li><a href="module-Character.html">Character</a></li><li><a href="module-Drawer.html">Drawer</a></li><li><a href="module-Game.html">Game</a></li><li><a href="module-JsonData.html">JsonData</a></li><li><a href="module-Keyboard.html">Keyboard</a></li><li><a href="module-ObjectPool.html">ObjectPool</a></li><li><a href="module-Queue.html">Queue</a></li><li><a href="module-SoundManager.html">SoundManager</a></li><li><a href="module-Stage.html">Stage</a></li><li><a href="module-Util.html">Util</a></li><li><a href="module-WorkManager.html">WorkManager</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Jun 17 2026 20:43:06 GMT+0900 (日本標準時)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

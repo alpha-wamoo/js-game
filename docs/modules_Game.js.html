@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: modules/Game.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: modules/Game.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager} from "../modules.js";
+
+export default class Game{
+    /**@enum {CanvasRenderingContext2D | null} */
+    _contexts = {
+        bg: null,
+        object: null,
+        ui: null
+    };
+    /**@type {Stage} */
+    _stage;
+    /**@type {Character} */
+    _pl;
+    /**@type {number} */
+    _score = 0;
+    /**@type {number} */
+    _frame = 0;
+    /**@type {HTMLAudioElement} */
+    _bgm;
+
+    /**
+     * @constructor
+     * @param {Contexts} ctxs
+     * @param {Stage} stage
+     */
+    constructor(ctxs, stage){
+        this._contexts = ctxs;
+        this._stage = stage;
+    }
+
+    /**
+     * @param {Contexts} ctxs
+     * @param {Stage} stage
+     */
+    static async init(ctxs, stage){
+        const game = new Game(ctxs, stage)
+        .setPlayer(await stage.spawnChr("player"));
+        await Drawer.setContexts(game._contexts);
+        Drawer.replaceBG(JsonData.bgDefinition.DEFAULT);
+
+        return game;
+    }
+
+    /**
+     * ゲームを開始します
+     */
+    start(){
+        // subscribe keyboard
+        document.onkeydown = Keyboard.keydown.bind(Keyboard);
+        document.onkeyup = Keyboard.keyup.bind(Keyboard);
+
+        // sound
+        SoundManager.play("start");
+        this._bgm = SoundManager.play("battle_bgm_default");
+
+        // call interval
+        this.mainLoop();
+    }
+
+    /**
+     * 毎フレーム実行されます
+     */
+    mainLoop(){
+        Drawer.clear("object");
+        Drawer.clear("ui");
+
+        this._pl = this._stage._validChrs.find(chr => chr.typeId === "player");
+        const {NATURAL_HEAL, BULLET} = JsonData.config;
+        if(this.isInterval(0.5 * 1000)) this._stage.spawnRandEnemy();
+        if(this.isInterval(1000)) this.updateScore(s => s + 1, false);
+        if(this.isInterval(NATURAL_HEAL.INTERVAL)) this._pl.applyHeal(NATURAL_HEAL.HP, { allowSound: true, allowAnimation: true });
+        this.updateFrame();
+        this.drawFrame();
+
+        this._frame++;
+        requestAnimationFrame(this.mainLoop.bind(this));
+    }
+
+    /**
+     * フレームごとの状態を更新します
+     */
+    updateFrame(){
+        const stage = this._stage, pl = this._pl;
+        const enemies = stage.getValidChrs(chr => chr.typeId !== "player");
+        const bullets = stage.getValidBlts();
+        const {RUN} = JsonData.config;
+    
+        // bullets
+        bullets.forEach(blt => {
+            blt.updatePos();
+            if(!stage.isInsidePos(blt.getPos())) stage.killBlt(blt);
+        });
+
+        // score
+        // TODO: score
+
+        // keyboard monitor
+        if(Keyboard.isPressed("d")) pl.move(this._stage, "right");
+        if(Keyboard.isPressed("a")) pl.move(this._stage, "left");
+        if(Keyboard.isPressed("w")) pl.move(this._stage, "up");
+        if(Keyboard.isPressed("s")) pl.move(this._stage, "down");
+        if(Keyboard.isPressed(" ")) pl.shootBullet(this._stage);
+        if(Keyboard.isAllPressed("shift", "enter")) pl.useMagic(this._stage, this);    
+        else if(Keyboard.isPressed("enter")) pl.runFaster();
+
+        // -> HittingDetector thread
+        /**@import {HittingPair, DtoToMain, MessageFromMain} from "./worker/HittingDetector.js" */
+        WorkManager.activate("HittingDetector", /**@type {MessageFromMain}*/{
+            player: pl,
+            enemies: this._stage._validChrs.filter(chr => chr !== pl),
+            bullets: this._stage._validBlts
+        }, (ev) => {
+            /**@type {DtoToMain} */
+            const detectedPairs = ev.data;
+
+            // player hit with enemy
+            detectedPairs.pl_enemy.forEach(enemyId => {
+                const enemy = stage.getChrPool().getByIdx(enemyId);
+                Drawer.enqueueAnimation("effect_small_explode", Util.averagePos(enemy.pos, pl.pos));
+                enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
+                    runDeath: dead => {
+                        this.updateScore(s => s + dead.rewardScore);
+                        stage.killChr(dead);
+                    }
+                });
+                pl.applyDamage(enemy.hitDmg, {
+                    allowSound: true,
+                    runDeath: dead => stage.killChr(dead)
+                });
+            });
+
+            // enemy hits with bullet
+            detectedPairs.enemy_blt.forEach(ids => {
+                const enemy = stage.getChrPool().getByIdx(ids.enemy);
+                const blt = stage.getBltPool().getByIdx(ids.blt);
+
+                enemy.applyDamage(blt.getDmg(), {
+                    allowSound: true,
+                    runDeath: deadChr => {
+                        if(blt.getOwner() === pl) this.updateScore(s => s + deadChr.rewardScore);
+                        stage.killChr(deadChr);
+                    }
+                });
+                Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
+                stage.killBlt(blt);
+            });
+        });
+
+        // TODO: 当たり判定のアルゴリズムを最適化する. 複数の領域に分割して管理.
+        // enemies move
+        enemies.forEach(enemy => {
+            enemy.enemyMove();
+            if(!stage.isInsidePos(enemy.pos)) stage.killChr(enemy);
+            enemy.frame++;
+        });
+
+        // player hit with enemy 
+        // enemies.filter(enemy => pl.isHittingTo(enemy)).forEach(enemy => {
+        //     Drawer.enqueueAnimation("effect_small_explode", Util.averagePos(enemy.pos, pl.pos));
+        //     enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
+        //         runDeath: dead => {
+        //             this.updateScore(s => s + dead.rewardScore);
+        //             stage.killChr(dead);
+        //         }
+        //     });
+        //     pl.applyDamage(enemy.hitDmg, {
+        //         allowSound: true,
+        //         runDeath: dead => stage.killChr(dead)
+        //     });
+        // });
+
+        // enemy hits with bullet
+        // enemies.forEach(enemy => {
+        //     stage.getValidBlts().filter(blt => enemy.isHittingTo(blt))
+        //     .forEach(blt => {
+        //         enemy.applyDamage(blt.getDmg(), {
+        //             allowSound: true,
+        //             runDeath: deadChr => {
+        //                 if(blt.getOwner().isSameWith(pl)) this.updateScore(s => s + deadChr.rewardScore);
+        //                 stage.killChr(deadChr);
+        //             }
+        //         });
+        //         Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
+        //         stage.killBlt(blt);
+        //     });
+        // });
+    }
+
+    /**
+     * 動的要素以外の画面構成要素を描画します
+     */
+    drawFrame(){
+        const stage = this._stage;
+        const enemies = stage.getValidChrs(chr => chr.typeId !== "player");
+        const timeFromStart = this.getTimeFromStart();
+    
+        Drawer.drawStatusField("Arial", [
+            { size: 45, text: `[ ${timeFromStart.min} : ${timeFromStart.sec} ]` },
+            { size: 25,text: `SCORE: ${this._score}` }
+        ]);
+        Drawer.drawBullets(stage.getValidBlts());
+        Drawer.drawCharacters(stage.getValidChrs());
+        Drawer.drawEnemiesHealthBar(enemies, "rgb(225, 200, 255)", "rgb(166, 41, 149)");
+        Drawer.drawPlayerHealthBar(this._pl, "rgb(168, 5, 105)", "rgb(67, 111, 255)");
+        Drawer.drawRunnableBar(this._pl.runnableCnt);
+        Drawer.drawMagicUsableBar(this._pl.magicUsableCnt);
+        Drawer.drawQueuedAnimations();
+        Drawer.drawQueuedDynamicTexts();
+    }
+
+    /**
+     * @param {Character} pl 
+     * @returns {Game}
+     */
+    setPlayer(pl){
+        this._pl = pl;
+        return this;
+    }
+
+    /**
+     * @param {number} msec 
+     * @returns {boolean}
+     */
+    isInterval(msec){
+        return this._frame % (FPS * msec / 1000) === 1;
+    }
+
+    /**
+     * スコアを更新し、更新後のスコアを返します
+     * @param {(score: number) => number} operation 更新処理
+     * @param {boolean} [allowPopup] スコア変化量のポップアップを描画します. default: true.
+     * @returns {number}
+     */
+    updateScore(operation, allowPopup = true){
+        const prevScore = this._score;
+        this._score = Math.floor(operation(this._score));
+        if(this._score &lt; 0) this._score = 0;
+        if(allowPopup){
+            const pl = this._pl;
+            // const popupPos = Util.Pos.add(pl.pos, {x: pl.size/2, y: -pl.size/2});
+            const popupPos = Util.Pos.move(pl.pos, { diffX: pl.size/2 });
+            Drawer.drawScoreUpdatePopup(this._score - prevScore, popupPos);
+        }
+
+        if(prevScore &lt; 1000 &amp;&amp; 1000 &lt;= this._score){
+            // TODO: レベルアップ処理などを書く
+        }
+        return this._score;
+    }
+
+    /**
+     * ゲームのコンテキストを取得します
+     * @returns {CanvasRenderingContext2D}
+     */
+    getContext(){
+        return this._ctx;
+    }
+
+    /**
+     * ゲーム開始からの時間を返します
+     * @returns {{sec: string, min: string}} secとminを00形式の文字列で返します
+     */
+    getTimeFromStart(){
+        const totalSec = this._frame / FPS;
+        const time ={
+            sec: Math.floor(totalSec % 60),
+            min: Math.floor(totalSec / 60)
+        };
+        const timeTexts = {
+            sec: String(time.sec).padStart(2, "0"),
+            min: String(time.min).padStart(2, "0")
+        };
+        return timeTexts;
+    }
+
+    /**
+     * ステージを取得します
+     * @returns {Stage}
+     */
+    getStage(){
+        return this._stage;
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module.html#.exports">exports</a></li><li><a href="module.exports_module.exports.html">exports</a></li></ul><h3>Global</h3><ul><li><a href="global.html#AnimationDefinitionsEnum">AnimationDefinitionsEnum</a></li><li><a href="global.html#SoundDefinitions">SoundDefinitions</a></li><li><a href="global.html#activate">activate</a></li><li><a href="global.html#add">add</a></li><li><a href="global.html#addPos">addPos</a></li><li><a href="global.html#applyDamage">applyDamage</a></li><li><a href="global.html#applyHeal">applyHeal</a></li><li><a href="global.html#averagePos">averagePos</a></li><li><a href="global.html#bgDefinition">bgDefinition</a></li><li><a href="global.html#centerToMin">centerToMin</a></li><li><a href="global.html#clear">clear</a></li><li><a href="global.html#config">config</a></li><li><a href="global.html#dequeue">dequeue</a></li><li><a href="global.html#drawBullets">drawBullets</a></li><li><a href="global.html#drawCharacters">drawCharacters</a></li><li><a href="global.html#drawEnemiesHealthBar">drawEnemiesHealthBar</a></li><li><a href="global.html#drawFrame">drawFrame</a></li><li><a href="global.html#drawMagicUsableBar">drawMagicUsableBar</a></li><li><a href="global.html#drawPlayerHealthBar">drawPlayerHealthBar</a></li><li><a href="global.html#drawQueuedAnimations">drawQueuedAnimations</a></li><li><a href="global.html#drawQueuedDynamicTexts">drawQueuedDynamicTexts</a></li><li><a href="global.html#drawRunnableBar">drawRunnableBar</a></li><li><a href="global.html#drawScoreUpdatePopup">drawScoreUpdatePopup</a></li><li><a href="global.html#drawStatusField">drawStatusField</a></li><li><a href="global.html#drawText">drawText</a></li><li><a href="global.html#drawTitle">drawTitle</a></li><li><a href="global.html#elem">elem</a></li><li><a href="global.html#enemiesDefinition">enemiesDefinition</a></li><li><a href="global.html#enemyMove">enemyMove</a></li><li><a href="global.html#enqueue">enqueue</a></li><li><a href="global.html#enqueueAnimation">enqueueAnimation</a></li><li><a href="global.html#enqueueDynamicText">enqueueDynamicText</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#getBltPool">getBltPool</a></li><li><a href="global.html#getByIdx">getByIdx</a></li><li><a href="global.html#getCenter">getCenter</a></li><li><a href="global.html#getChrPool">getChrPool</a></li><li><a href="global.html#getColor">getColor</a></li><li><a href="global.html#getContext">getContext</a></li><li><a href="global.html#getDistanceTo">getDistanceTo</a></li><li><a href="global.html#getDmg">getDmg</a></li><li><a href="global.html#getId">getId</a></li><li><a href="global.html#getLevel">getLevel</a></li><li><a href="global.html#getMotionByKey">getMotionByKey</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getPos">getPos</a></li><li><a href="global.html#getSize">getSize</a></li><li><a href="global.html#getStage">getStage</a></li><li><a href="global.html#getTimeFromStart">getTimeFromStart</a></li><li><a href="global.html#getValidBlts">getValidBlts</a></li><li><a href="global.html#getValidChrs">getValidChrs</a></li><li><a href="global.html#incrementLevel">incrementLevel</a></li><li><a href="global.html#init">init</a></li><li><a href="global.html#initAll">initAll</a></li><li><a href="global.html#isAllPressed">isAllPressed</a></li><li><a href="global.html#isEmpty">isEmpty</a></li><li><a href="global.html#isInsidePos">isInsidePos</a></li><li><a href="global.html#isInterval">isInterval</a></li><li><a href="global.html#isPressed">isPressed</a></li><li><a href="global.html#isSameWith">isSameWith</a></li><li><a href="global.html#items">items</a></li><li><a href="global.html#keyPressed">keyPressed</a></li><li><a href="global.html#keydown">keydown</a></li><li><a href="global.html#keyup">keyup</a></li><li><a href="global.html#killBlt">killBlt</a></li><li><a href="global.html#killChr">killChr</a></li><li><a href="global.html#length">length</a></li><li><a href="global.html#loadContext">loadContext</a></li><li><a href="global.html#mainLoop">mainLoop</a></li><li><a href="global.html#map">map</a></li><li><a href="global.html#mapPos">mapPos</a></li><li><a href="global.html#minToCenter">minToCenter</a></li><li><a href="global.html#move">move</a></li><li><a href="global.html#mulPos">mulPos</a></li><li><a href="global.html#peek">peek</a></li><li><a href="global.html#play">play</a></li><li><a href="global.html#playerDefinition">playerDefinition</a></li><li><a href="global.html#posSize">posSize</a></li><li><a href="global.html#ptToPx">ptToPx</a></li><li><a href="global.html#release">release</a></li><li><a href="global.html#replaceBG">replaceBG</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#runFaster">runFaster</a></li><li><a href="global.html#scale">scale</a></li><li><a href="global.html#setBulletDmg">setBulletDmg</a></li><li><a href="global.html#setColor">setColor</a></li><li><a href="global.html#setContexts">setContexts</a></li><li><a href="global.html#setHitDmg">setHitDmg</a></li><li><a href="global.html#setImage">setImage</a></li><li><a href="global.html#setItems">setItems</a></li><li><a href="global.html#setLevel">setLevel</a></li><li><a href="global.html#setMotion">setMotion</a></li><li><a href="global.html#setPlayer">setPlayer</a></li><li><a href="global.html#setPos">setPos</a></li><li><a href="global.html#setRewardScore">setRewardScore</a></li><li><a href="global.html#setSize">setSize</a></li><li><a href="global.html#setSpeed">setSpeed</a></li><li><a href="global.html#setUnbeatableTime">setUnbeatableTime</a></li><li><a href="global.html#shootBullet">shootBullet</a></li><li><a href="global.html#skillDefinition">skillDefinition</a></li><li><a href="global.html#sleep">sleep</a></li><li><a href="global.html#soundDefinition">soundDefinition</a></li><li><a href="global.html#spawnBlt">spawnBlt</a></li><li><a href="global.html#spawnChr">spawnChr</a></li><li><a href="global.html#spawnRandEnemy">spawnRandEnemy</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#terminate">terminate</a></li><li><a href="global.html#toAlpha">toAlpha</a></li><li><a href="global.html#uiConfig">uiConfig</a></li><li><a href="global.html#updateFrame">updateFrame</a></li><li><a href="global.html#updateHp">updateHp</a></li><li><a href="global.html#updatePos">updatePos</a></li><li><a href="global.html#updateScore">updateScore</a></li><li><a href="global.html#useMagic">useMagic</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Jun 17 2026 14:46:17 GMT+0900 (日本標準時)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

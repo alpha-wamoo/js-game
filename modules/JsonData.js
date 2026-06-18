@@ -1,0 +1,165 @@
+/**@module JsonData */
+/**
+ * @typedef {import("../json/config.json")} ConfigData
+ * @typedef {import("../json/enemiesDefinition.json")} EnemiesDefinition
+ * @typedef {import("../json/playerDefinition.json")} PlayerDefinition
+ * @typedef {import("../json/bgDefinition.json")} BgDefinition
+ * @typedef {import("../json/skillDefinition.json")} SkillDefinition
+ * @typedef {import("../json/uiConfig.json")} UiConfig
+ * @typedef {import("../json/soundDefinition.json")} SoundDefinition
+ */
+
+/**
+ * - jsonファイルを読み込み、読み込んだデータを管理します.
+ * @class
+ */
+export default class JsonData{
+    /**@private @static @type {ConfigData?} */
+    static _configData = null;
+    /**@private @static @type {EnemiesDefinition?} */
+    static _enemiesDefinition = null;
+    /**@private @static @type {PlayerDefinition?} */
+    static _playerDefinition = null;
+    /**@private @static @type {BgDefinition?} */
+    static _bgDefinition = null;
+    /**@private @static @type {SkillDefinition?} */
+    static _skillDefinition = null;
+    /**@private @static @type {UiConfig?} */
+    static _uiConfig = null;
+    /**@private @static @type {SoundDefinition?} */
+    static _soundDefinition = null;
+
+    /**
+     * - 全てのjsonを読み取り、JsonDataを初期化します
+     * @public @static @async @method
+     */
+    // TODO: この非同期は意味なさそう
+    static async initAll(){
+        await this.initConfig();
+        await this.initEnemiesDefinition();
+        await this.initPlayerDefinition();
+        await this.initBgDefinition();
+        await this.initSkillDefinition();
+        await this.initUiConfig();
+        await this.initSoundDefinition();
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initConfig(){
+        const res = await fetch("./json/config.json");
+        const config = await res.json();
+        this._configData = config;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initEnemiesDefinition(){
+        const res = await fetch("./json/enemiesDefinition.json");
+        const enemiesDefinition = await res.json();
+        this._enemiesDefinition = enemiesDefinition;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initPlayerDefinition(){
+        const res = await fetch("./json/playerDefinition.json");
+        const playerDefinition = await res.json();
+        this._playerDefinition = playerDefinition;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initBgDefinition(){
+        const res = await fetch("./json/bgDefinition.json");
+        const bgDefinition = await res.json();
+        this._bgDefinition = bgDefinition;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initSkillDefinition(){
+        const res = await fetch("./json/skillDefinition.json");
+        const skillDefinition = await res.json();
+        this._skillDefinition = skillDefinition;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initUiConfig(){
+        const res = await fetch("./json/uiConfig.json");
+        const uiConfig = await res.json();
+        this._uiConfig = uiConfig;
+    }
+
+    /**
+     * @private @static @async @method
+     */
+    static async initSoundDefinition(){
+        const res = await fetch("./json/soundDefinition.json");
+        const soundDefinition = await res.json();
+        this._soundDefinition = soundDefinition;
+    }
+
+    /**
+     * - config.jsonのデータ
+     * @static @type {ConfigData}
+     * */
+    static get config(){
+        return this._configData;
+    }
+
+    /**
+     * - enemiesDefinition.jsonのデータ
+     * @static @type {EnemiesDefinition}
+     * */
+    static get enemiesDefinition(){
+        return this._enemiesDefinition;
+    }
+
+    /**
+     * - playerDefinition.jsonのデータ
+     * @static @type {PlayerDefinition}
+     * */
+    static get playerDefinition(){
+        return this._playerDefinition;
+    }
+
+    /**
+     * - bgDefinition.jsonのデータ
+     * @static @type {BgDefinition}
+     * */
+    static get bgDefinition(){
+        return this._bgDefinition;
+    }
+
+    /**
+     * - skillDefinition.jsonのデータ
+     * @staitic @type {SkillDefinition}
+     * */
+    static get skillDefinition(){
+        return this._skillDefinition;
+    }
+
+    /**
+     * - uiConfig.jsonのデータ
+     * @static @type {UiConfig}
+     * */
+    static get uiConfig(){
+        return this._uiConfig;
+    }
+
+    /**
+     * - soundDefinition.jsonのデータ
+     * @static @type {SoundDefinition}
+     * */
+    static get soundDefinition(){
+        return this._soundDefinition;
+    }
+}
