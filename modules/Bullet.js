@@ -16,7 +16,7 @@ export default class Bullet{
     _pos;
     /**@private @type {Position} */
     _speed;
-    /**@private@type {number} */
+    /**@private @type {number} */
     _dmg;
     /**@private @type {Character} */
     _owner;

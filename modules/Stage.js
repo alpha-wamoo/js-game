@@ -1,10 +1,20 @@
 /**@module Stage */
-import {Character, Bullet, JsonData, ObjectPool} from "../modules.js";
+import {Character, Bullet, JsonData, ObjectPool, FieldGrid, GOManager} from "../modules.js";
 
 /**
+ * @import {ElementStructs} from "./GOManager.js"
  * @typedef {import("../modules").Position} Position
  * @typedef {import("../modules").Bounds} Bounds
  * @typedef {import("../modules").CharacterTypeId} CharacterTypeId
+ * 
+ * @typedef BulletStruct
+ * @prop {0|1} isValid
+ * @prop {number} id
+ * @prop {number} size
+ * @prop {number} posX
+ * @prop {number} posY
+ * @prop {number} ownerId
+ * @prop {number} dmg
  */
 
 /**
@@ -17,20 +27,47 @@ export default class Stage{
     bounds;
     /**@private @type {Character[]} */
     _validChrs = [];
+    /**@private @type {FieldGrid<Character>} */
+    _fieldChrGrid = new FieldGrid(JsonData.config.STAGE.CELL_SIZE);
     /**@private */
     _chrPool = new ObjectPool(JsonData.config.STAGE.CHARACTERS_CAPACITY, id => new Character(id));
     /**@private @type {Bullet[]} */
     _validBlts = [];
+    /**@private @type {FieldGrid<Bullet>} */
+    _fieldBltGrid = new FieldGrid(JsonData.config.STAGE.CELL_SIZE);
     /**@private */
     _bltPool = new ObjectPool(JsonData.config.STAGE.BULLETS_CAPACITY, id => new Bullet(id));
     /**@private @type {number} */
     _level = 1;
+    /**@type {GOManager<BulletStruct>} */
+    _bulletManager = new GOManager(JsonData.config.STAGE.BULLETS_CAPACITY, {
+        isValid: {type: "Uint8", offset: 0, bytes: 1},
+        id: {type:"Uint8", offset: 1, bytes: 1},
+        size: {type: "Uint8", offset: 2, bytes: 1},
+        posX: {type: "Float32", offset: 3, bytes: 4},
+        posY: {type: "Float32", offset: 7, bytes: 4},
+        ownerId: {type: "Uint8", offset: 11, bytes: 1},
+        dmg: {type: "Uint8", offset: 12, bytes: 1},
+        speedX: {type: "Float32", offset: 13, bytes: 4},
+        speedY: {type: "Float32", offset: 17, bytes: 4},
+        colorR: {type: "Uint8", offset: 21, bytes: 1},
+        colorG: {type: "Uint8", offset: 22, bytes: 1},
+        colorB: {type: "Uint8", offset: 23, bytes: 1}
+    });
 
     /**
      * @param {Bounds} bounds 
      */
     constructor(bounds){
         this.bounds = bounds;
+    }
+
+    get fieldChrGrid(){
+        return this._fieldChrGrid;
+    }
+
+    get fieldBltGrid(){
+        return this._fieldBltGrid;
     }
 
     /**

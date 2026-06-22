@@ -1,5 +1,6 @@
 /**@module Game */
 import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager} from "../modules.js";
+import {default as constructDTO} from "./worker/HittingDetector.js";
 
 /**
  * @typedef Contexts
@@ -75,13 +76,10 @@ export default class Game{
      */
     start(){
         const operationCanv = document.getElementById("ui");
-        operationCanv.tabIndex = 0;
+        // const operationCanv = this._canvs.ui;
         operationCanv.focus();
 
         // subscribe keyboard
-        // window.addEventListener("keydown", ev => {
-        //     if(ev.key === " ") ev.preventDefault();
-        // }, {passive: false});
         operationCanv.onkeydown = ev => Keyboard.keydown(ev);
         operationCanv.onkeyup = ev => Keyboard.keyup(ev);
         operationCanv.onblur = ev => Keyboard.clear();
@@ -95,7 +93,7 @@ export default class Game{
     }
 
     finish(){
-        
+        console.log("finish..");
     }
 
     /**
@@ -111,12 +109,14 @@ export default class Game{
         const {NATURAL_HEAL, BULLET} = JsonData.config;
         if(this.isInterval(0.5 * 1000)) this._stage.spawnRandEnemy();
         if(this.isInterval(1000)) this.updateScore(s => s + 1, false);
-        if(this.isInterval(NATURAL_HEAL.INTERVAL)) this._pl.applyHeal(NATURAL_HEAL.HP, { allowSound: true, allowAnimation: true });
+        if(this.isInterval(NATURAL_HEAL.INTERVAL)) this._pl?.applyHeal(NATURAL_HEAL.HP, { allowSound: true, allowAnimation: true });
+
         this.updateFrame();
         this.drawFrame();
 
         this._frame++;
         if(this._pl) requestAnimationFrame(this._boundMainLoop);
+        else this.finish();
     }
 
     /**
@@ -130,115 +130,125 @@ export default class Game{
         const enemies = stage.getValidChrs(chr => chr !== pl);
         const bullets = stage.getValidBlts();
         const {RUN} = JsonData.config;
-    
-
-        // bullets
-        bullets.forEach(blt => {
-            blt.updatePos();
-            if(!stage.isInsidePos(blt.getPos())) stage.killBlt(blt);
-        });
-
 
         // score
         // TODO: score
 
-
         // keyboard monitor
-        if(Keyboard.isPressed("d")) this._pl.move(this._stage, "right");
-        if(Keyboard.isPressed("a")) this._pl.move(this._stage, "left");
-        if(Keyboard.isPressed("w")) this._pl.move(this._stage, "up");
-        if(Keyboard.isPressed("s")) this._pl.move(this._stage, "down");
-        if(Keyboard.isPressed(" ")) this._pl.shootBullet(this._stage);
-        // 重い原因を確認するため、コメントアウト
-        // if(Keyboard.isPressed("shift") && Keyboard.isPressed("enter")) this._pl.useMagic(this._stage, this);    
-        // else if(Keyboard.isPressed("enter")) this._pl.runFaster();
+        if(Keyboard.isPressed("d")) pl.move(stage, "right");
+        if(Keyboard.isPressed("a")) pl.move(stage, "left");
+        if(Keyboard.isPressed("w")) pl.move(stage, "up");
+        if(Keyboard.isPressed("s")) pl.move(stage, "down");
+        if(Keyboard.isPressed(" ")) pl.shootBullet(stage);
+        if(Keyboard.isAllPressed("shift", "enter")) pl.useMagic(stage, this);    
+        else if(Keyboard.isPressed("enter")) pl.runFaster();
 
-        // enemies move
-        enemies.forEach(enemy => {
+        // enemies update
+        for(const enemy of enemies){
             enemy.enemyMove();
+            // TODO: fieldGridを座標から更新
+            stage.fieldChrGrid.register(enemy);
             if(!stage.isInsidePos(enemy.pos)) stage.killChr(enemy);
             enemy.frame++;
-        });
+        }
 
-        const deltaMs = 1000 / FPS;
-        stage.getValidChrs().forEach(chr => chr.decrementUnbeatableCnt(deltaMs));
+        // bullets update
+        for(const blt of bullets){
+            blt.updatePos();
+            stage.fieldBltGrid.register(blt);
+            if(!stage.isInsidePos(blt.getPos())) stage.killBlt(blt);
+        }
 
         // TODO: 当たり判定のアルゴリズムを最適化する. 複数の領域に分割して管理.
         // -> HittingDetector thread 
         // const dto = constructDTO({player: this._pl, enemies, bullets});
         /**@import {DtoToMain} from "./worker/HittingDetector.js" */
         // WorkManager.activate("HittingDetector", dto, (ev) => {
-            /**@type {DtoToMain?} */
-            /*
-            const detectedPairs = ev.data;
-            if(!detectedPairs) return;
+        //     /**@type {DtoToMain?} */
+        //     const detectedPairs = ev.data;
+        //     if(!detectedPairs) return;
 
-            // player hit with enemy
-            detectedPairs.pl_enemy.forEach(enemyId => {
-                const enemy = stage.getChrPool().getByIdx(enemyId);
-                if(!enemy) return;
-                Drawer.enqueueAnimation("effect_small_explode", Util.averagePos(enemy.pos, pl.pos));
-                enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
-                    runDeath: dead => {
-                        this.updateScore(s => s + dead.rewardScore);
-                        stage.killChr(dead);
-                    }
-                });
-                this._pl.applyDamage(enemy.hitDmg, {
-                    allowSound: true,
-                    runDeath: dead => stage.killChr(dead)
-                });
-            });
+        //     // player hit with enemy
+        //     detectedPairs.pl_enemy.forEach(enemyId => {
+        //         const enemy = stage.getChrPool().getByIdx(enemyId);
+        //         if(!enemy) return;
+        //         Drawer.enqueueAnimation("effect_small_explode", Util.averagePos(enemy.pos, pl.pos));
+        //         enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
+        //             runDeath: dead => {
+        //                 this.updateScore(s => s + dead.rewardScore);
+        //                 stage.killChr(dead);
+        //             }
+        //         });
+        //         this._pl.applyDamage(enemy.hitDmg, {
+        //             allowSound: true,
+        //             runDeath: dead => stage.killChr(dead)
+        //         });
+        //     });
 
-            // enemy hits with bullet
-            detectedPairs.enemy_blt.forEach(ids => {
-                const enemy = stage.getChrPool().getByIdx(ids.enemy);
-                const blt = stage.getBltPool().getByIdx(ids.blt);
-                if(!enemy || !blt) return;
+        //     // enemy hits with bullet
+        //     detectedPairs.enemy_blt.forEach(ids => {
+        //         const enemy = stage.getChrPool().getByIdx(ids.enemy);
+        //         const blt = stage.getBltPool().getByIdx(ids.blt);
+        //         if(!enemy || !blt) return;
 
-                enemy.applyDamage(blt.getDmg(), {
-                    allowSound: true,
-                    runDeath: deadChr => {
-                        if(blt.getOwner() === this._pl) this.updateScore(s => s + deadChr.rewardScore);
-                        stage.killChr(deadChr);
-                    }
-                });
-                Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
-                stage.killBlt(blt);
-            });*/
+        //         enemy.applyDamage(blt.getDmg(), {
+        //             allowSound: true,
+        //             runDeath: deadChr => {
+        //                 if(blt.getOwner() === this._pl) this.updateScore(s => s + deadChr.rewardScore);
+        //                 stage.killChr(deadChr);
+        //             }
+        //         });
+        //         Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
+        //         stage.killBlt(blt);
+        //     });
         // });
 
-        // -> player hit with enemy 
-        const {Pos, GameObj} = Util;
-        enemies.filter(enemy => Util.GameObj.isHittingTo(this._pl, enemy)).forEach(enemy => {
-            Drawer.enqueueAnimation("effect_small_explode", Util.Pos.ave(enemy.pos, pl.pos));
-            enemy.applyDamage(enemy.hitDmg * 2.5 / FPS, {
-                runDeath: dead => {
-                    this.updateScore(s => s + dead.rewardScore);
-                    stage.killChr(dead);
-                }
-            });
-            this._pl.applyDamage(enemy.hitDmg, {
-                allowSound: true,
-                runDeath: dead => stage.killChr(dead)
-            });
-        });
+        // -> player hits with enemy (grid)
+        // const {Pos, GameObj} = Util;
+        // for(const nearbyChr of stage.fieldChrGrid.getObjectsOfNearbyGrids(pl.pos)){
+        //     if(nearbyChr === pl) continue;
+        //     if(!GameObj.isHittingTo(pl, nearbyChr)) continue;
+        //     const hittingEnemy = nearbyChr;
+        //     console.log("hit pl <-> enemy");
 
-        // -> enemy hits with bullet
-        enemies.forEach(enemy => {
-            stage.getValidBlts().filter(blt => Util.GameObj.isHittingTo(enemy, blt))
-            .forEach(blt => {
-                enemy.applyDamage(blt.getDmg(), {
-                    allowSound: true,
-                    runDeath: deadChr => {
-                        if(blt.getOwner() === this._pl) this.updateScore(s => s + deadChr.rewardScore);
-                        stage.killChr(deadChr);
-                    }
-                });
-                Drawer.enqueueAnimation("effect_small_explode", blt.getPos());
-                stage.killBlt(blt);
-            });
-        });
+        //     Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, pl.pos));
+        //     hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
+        //         runDeath: deadEnemy => {
+        //             this.updateScore(s => s + deadEnemy.rewardScore);
+        //             stage.killChr(deadEnemy);
+        //         }
+        //     });
+        //     pl.applyDamage(hittingEnemy.hitDmg, {
+        //         allowSound: true,
+        //         runDeath: deadPl => stage.killChr(deadPl)
+        //     });
+        // }
+        // -> enemy hits with bullet (grid)
+        // for(const enemy of enemies){
+        //     for(const nearbyBlt of stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
+        //         if(!GameObj.isHittingTo(enemy, nearbyBlt)) continue;
+        //         const hittingBlt = nearbyBlt;
+        //         console.log("hit enemy <-> bullet");
+
+        //         enemy.applyDamage(hittingBlt.getDmg(), {
+        //             allowSound: true,
+        //             runDeath: deadEnemy => {
+        //                 if(hittingBlt.getOwner() === pl) this.updateScore(s => s + deadEnemy.rewardScore);
+        //                 stage.killChr(deadEnemy);
+        //             }
+        //         });
+        //         Drawer.enqueueAnimation("effect_small_explode", hittingBlt.getPos());
+        //         stage.killBlt(hittingBlt);
+        //     }
+        // }
+
+        // grid clear
+        stage.fieldBltGrid.clear();
+        stage.fieldChrGrid.clear();
+
+        // unbeatable time
+        const deltaMs = 1000 / FPS;
+        for(const validChr of stage.getValidChrs()) validChr.decrementUnbeatableCnt(deltaMs);
     }
 
     /**
@@ -256,12 +266,16 @@ export default class Game{
             { size: 45, text: `[ ${timeFromStart.min} : ${timeFromStart.sec} ]` },
             { size: 25,text: `SCORE: ${this._score}` }
         ]);
-        Drawer.drawBullets(stage.getValidBlts());
-        Drawer.drawCharacters(stage.getValidChrs());
+        Drawer.drawValidBullets(stage.getValidBlts());
+        Drawer.drawValidCharacters(stage.getValidChrs());
+
+        // ゲージを描画
         Drawer.drawEnemiesHealthBar(enemies, "rgb(225, 200, 255)", "rgb(166, 41, 149)");
         Drawer.drawPlayerHealthBar(this._pl, "rgb(168, 5, 105)", "rgb(67, 111, 255)");
         Drawer.drawRunnableBar(this._pl.runnableCnt);
         Drawer.drawMagicUsableBar(this._pl.magicUsableCnt);
+
+        // エンキューされた動的要素をまとめて描画
         Drawer.drawQueuedAnimations();
         Drawer.drawQueuedDynamicTexts();
     }

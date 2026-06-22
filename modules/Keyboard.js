@@ -6,7 +6,7 @@
  */
 export default class Keyboard{
     /**@private @type {Map<string, number>} */
-    static _keysMap = new Map();
+    static _keysCntMap = new Map();
 
     /**
      * イベントデータから、押されたキーを表す文字列を取得します
@@ -24,8 +24,8 @@ export default class Keyboard{
      * @param {string} key 時間を取得したいキー
      * @returns {number}
      */
-    static keyPressed(key){
-        return Keyboard._keysMap.get(key) ?? 0;
+    static getPressedCnt(key){
+        return Keyboard._keysCntMap.get(key) ?? 0;
     }
 
     /**
@@ -35,7 +35,7 @@ export default class Keyboard{
      * @returns {boolean} 推されていればtrue.
      */
     static isPressed(key){
-        return Keyboard.keyPressed(key) >= 1;
+        return Keyboard.getPressedCnt(key) >= 1;
     }
 
     /**
@@ -55,11 +55,11 @@ export default class Keyboard{
      */
     static keydown(ev){
         ev.preventDefault();
-        ev.stopPropagation();
+        // ev.stopPropagation();
         const key = Keyboard._getKey(ev);
-        const prevValue = Keyboard._keysMap.get(key) ?? 0;
-        this._keysMap.set(key, /*prevValue +*/ 1);
-        console.log(`down: ${key}`);
+        const prevValue = Keyboard._keysCntMap.get(key) ?? 0;
+        this._keysCntMap.set(key, prevValue + 1);
+        // console.log(`down: ${key}`);
     }
 
     /**
@@ -69,13 +69,13 @@ export default class Keyboard{
      */
     static keyup(ev){
         ev.preventDefault();
-        ev.stopPropagation();
+        // ev.stopPropagation();
         const key = Keyboard._getKey(ev);
-        Keyboard._keysMap.delete(key);
-        console.log(`up: ${key}`);
+        Keyboard._keysCntMap.delete(key);
+        // console.log(`up: ${key}`);
     }
 
     static clear(){
-        Keyboard._keysMap.clear();
+        Keyboard._keysCntMap.clear();
     }
 }

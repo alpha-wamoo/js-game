@@ -29,6 +29,7 @@
     },
     "STAGE": {
         "CHARACTERS_CAPACITY": 100,
-        "BULLETS_CAPACITY": 100
+        "BULLETS_CAPACITY": 100,
+        "CELL_SIZE": 100
     }
 }

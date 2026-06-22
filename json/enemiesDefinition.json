@@ -1,7 +1,7 @@
 {
     "basic":{
         "imgSrc": "./images/character/frenchbulldog.png",
-        "size": 65,
+        "size": 55,
         "speed": 3.5,
         "max_hp": 35,
         "hit_dmg": 20,
@@ -11,7 +11,7 @@
     },
     "tough":{
         "imgSrc": "./images/character/schnauzer.png",
-        "size": 90,
+        "size": 80,
         "speed": 1.75,
         "max_hp": 100,
         "hit_dmg": 25,
@@ -21,7 +21,7 @@
     },
     "small": {
         "imgSrc": "./images/character/chihuahua.png",
-        "size": 45,
+        "size": 35,
         "speed": 7,
         "max_hp": 20,
         "hit_dmg": 10,
@@ -31,7 +31,7 @@
     },
     "tricky": {
         "imgSrc": "./images/character/shihtzu.png",
-        "size": 75,
+        "size": 65,
         "speed": 3,
         "max_hp": 35,
         "hit_dmg": 15,

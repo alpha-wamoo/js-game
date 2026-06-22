@@ -338,15 +338,6 @@ export default class Character{
         this.hp -= dmg;
         if(allowSound) SoundManager.play("hit");
         if(this.hp <= 0 && runDeath) runDeath(this);
-
-        const interval = 10;
-        const intervalId = setInterval(() => {
-            if(this.unbeatableCnt <= 0){
-                clearInterval(intervalId);
-                return;
-            }
-            this.unbeatableCnt -= interval;
-        }, interval);
         return this.hp;
     }
 

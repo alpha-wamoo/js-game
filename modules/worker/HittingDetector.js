@@ -1,5 +1,4 @@
-import {default as Character} from "../Character.js";
-import {default as Bullet} from "../Bullet.js";
+import {Character, Bullet, Util} from "../../modules.js";
 
 /**
  * @import {Position} from "../../modules.js"
@@ -28,6 +27,8 @@ onmessage = ev => {
     const { requestId, ...payload } = ev.data;
     postMessage({ requestId, payload: HittingDetector.detectObjects(payload) });
 }
+
+export default constructDTO;
 
 /**
  * dataをWorkへ送信可能なDTOに変換します.
@@ -78,10 +79,15 @@ class HittingDetector{
     static detectObjects({player, enemies, bullets}){
         // TODO: 判定処理を高速化する
 
-        if(player && enemies.length) this._hittingPairs.pl_enemy = enemies.filter(enemy => isHittingTo(player, enemy)).map(enemy => enemy.id);
-        if(enemies.length && bullets.length) this._hittingPairs.enemy_blt = enemies.flatMap(enemy =>
-            bullets.filter(blt => isHittingTo(enemy, blt)).map(blt => ({ enemy: enemy.id, blt: blt.id }))
-        );
+        // pl_enemy
+        // if(player && enemies.length) HittingDetector._hittingPairs.pl_enemy = enemies
+        // .filter(enemy => isHittingTo(player, enemy))
+        // .map(enemy => enemy.id);
+
+        // enemy_blt
+        // if(enemies.length && bullets.length) HittingDetector._hittingPairs.enemy_blt = enemies.flatMap(enemy =>
+        //     bullets.filter(blt => isHittingTo(enemy, blt)).map(blt => ({ enemy: enemy.id, blt: blt.id }))
+        // );
 
         return this._hittingPairs;
     }
@@ -152,5 +158,3 @@ class BulletDTO{
         this.size = bullet.getSize();
     }
 }
-
-export default constructDTO;

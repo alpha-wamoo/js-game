@@ -278,11 +278,12 @@ export default class Drawer{
      * @public @static
      * @param {Bullet[]} bullets 
      */
-    static drawBullets(bullets){
+    static drawValidBullets(bullets){
+        const ctx = this.getContext("object");
         bullets.forEach(blt => {
             const center = blt.getCenter();
-            this.getContext("object").fillStyle = blt.getColor();
-            this.getContext("object").fillRect(center.x, center.y, blt.getSize(), blt.getSize());
+            ctx.fillStyle = blt.getColor();
+            ctx.fillRect(center.x, center.y, blt.getSize(), blt.getSize());
         });
     }
 
@@ -291,9 +292,9 @@ export default class Drawer{
      * @public @static
      * @param {Character[]} chrs 
      */
-    static drawCharacters(chrs){
+    static drawValidCharacters(chrs){
+        const ctx = this.getContext("object");
         chrs.forEach(chr => {
-            const ctx = this.getContext("object");
             const center = chr.getCenter();
             ctx.drawImage(chr.img, center.x, center.y, chr.size, chr.size);
 

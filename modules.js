@@ -12,7 +12,9 @@ export const FPS = 60;
 /**@constant */
 export const MILISEC_PER_FRAME = 1000 / FPS;
 
-
+export {default as GOManager} from "./modules/GOManager.js";
+export {default as HittingDetector} from "./modules/HittingDetector.js";
+export {default as FieldGrid} from "./modules/FieldGrid.js";
 export {default as WorkManager} from "./modules/WorkManager.js";
 export {default as ObjectPool} from "./modules/ObjectPool.js";
 export {default as Queue} from "./modules/Queue.js";
