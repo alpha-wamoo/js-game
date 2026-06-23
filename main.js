@@ -23,11 +23,11 @@ const contexts = {
 // 	hello();
 // }
 
-createModule.then(Module => {
-	const hello = Module.cwrap("hello", "number", []);
-	console.log("aaa");
-	hello();
-})
+// createModule().then(Module => {
+// 	const hello = Module.cwrap("hello", "number", []);
+// 	console.log("aaa");
+// 	hello();
+// });
 
 window.onload = async () => {
 	await JsonData.initAll();
