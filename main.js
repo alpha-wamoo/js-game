@@ -1,4 +1,7 @@
+/// <reference path="./types/emscripten.d.ts" />
+
 import {Game, Stage, Util, JsonData} from "./modules.js";
+import createModule from "./cmodules.js";
 
 const canvs = {
 	bg: loadCanvas("bg"),
@@ -11,6 +14,20 @@ const contexts = {
 	object: loadContext(canvs.object),
 	ui: loadContext(canvs.ui)
 };
+
+
+// Module.onRuntimeInitialized = () => {
+// 	/**@type {() => number} */
+// 	const hello = Module.cwrap("hello", "number", []);
+// 	console.log("aaa");
+// 	hello();
+// }
+
+createModule.then(Module => {
+	const hello = Module.cwrap("hello", "number", []);
+	console.log("aaa");
+	hello();
+})
 
 window.onload = async () => {
 	await JsonData.initAll();
