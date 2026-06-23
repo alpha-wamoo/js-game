@@ -204,43 +204,43 @@ export default class Game{
         // });
 
         // -> player hits with enemy (grid)
-        // const {Pos, GameObj} = Util;
-        // for(const nearbyChr of stage.fieldChrGrid.getObjectsOfNearbyGrids(pl.pos)){
-        //     if(nearbyChr === pl) continue;
-        //     if(!GameObj.isHittingTo(pl, nearbyChr)) continue;
-        //     const hittingEnemy = nearbyChr;
-        //     console.log("hit pl <-> enemy");
+        const {Pos, GameObj} = Util;
+        for(const nearbyChr of stage.fieldChrGrid.getObjectsOfNearbyGrids(pl.pos)){
+            if(nearbyChr === pl) continue;
+            if(!GameObj.isHittingTo(pl, nearbyChr)) continue;
+            const hittingEnemy = nearbyChr;
+            console.log("hit pl <-> enemy");
 
-        //     Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, pl.pos));
-        //     hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
-        //         runDeath: deadEnemy => {
-        //             this.updateScore(s => s + deadEnemy.rewardScore);
-        //             stage.killChr(deadEnemy);
-        //         }
-        //     });
-        //     pl.applyDamage(hittingEnemy.hitDmg, {
-        //         allowSound: true,
-        //         runDeath: deadPl => stage.killChr(deadPl)
-        //     });
-        // }
+            Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, pl.pos));
+            hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
+                runDeath: deadEnemy => {
+                    this.updateScore(s => s + deadEnemy.rewardScore);
+                    stage.killChr(deadEnemy);
+                }
+            });
+            pl.applyDamage(hittingEnemy.hitDmg, {
+                allowSound: true,
+                runDeath: deadPl => stage.killChr(deadPl)
+            });
+        }
         // -> enemy hits with bullet (grid)
-        // for(const enemy of enemies){
-        //     for(const nearbyBlt of stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
-        //         if(!GameObj.isHittingTo(enemy, nearbyBlt)) continue;
-        //         const hittingBlt = nearbyBlt;
-        //         console.log("hit enemy <-> bullet");
+        for(const enemy of enemies){
+            for(const nearbyBlt of stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
+                if(!GameObj.isHittingTo(enemy, nearbyBlt)) continue;
+                const hittingBlt = nearbyBlt;
+                console.log("hit enemy <-> bullet");
 
-        //         enemy.applyDamage(hittingBlt.getDmg(), {
-        //             allowSound: true,
-        //             runDeath: deadEnemy => {
-        //                 if(hittingBlt.getOwner() === pl) this.updateScore(s => s + deadEnemy.rewardScore);
-        //                 stage.killChr(deadEnemy);
-        //             }
-        //         });
-        //         Drawer.enqueueAnimation("effect_small_explode", hittingBlt.getPos());
-        //         stage.killBlt(hittingBlt);
-        //     }
-        // }
+                enemy.applyDamage(hittingBlt.getDmg(), {
+                    allowSound: true,
+                    runDeath: deadEnemy => {
+                        if(hittingBlt.getOwner() === pl) this.updateScore(s => s + deadEnemy.rewardScore);
+                        stage.killChr(deadEnemy);
+                    }
+                });
+                Drawer.enqueueAnimation("effect_small_explode", hittingBlt.getPos());
+                stage.killBlt(hittingBlt);
+            }
+        }
 
         // grid clear
         stage.fieldBltGrid.clear();
@@ -249,6 +249,7 @@ export default class Game{
         // unbeatable time
         const deltaMs = 1000 / FPS;
         for(const validChr of stage.getValidChrs()) validChr.decrementUnbeatableCnt(deltaMs);
+        pl.decrementBulletShootableCnt(deltaMs);
     }
 
     /**

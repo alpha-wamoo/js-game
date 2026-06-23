@@ -7,6 +7,7 @@ import {Character, Bullet, JsonData, ObjectPool, FieldGrid, GOManager} from "../
  * @typedef {import("../modules").Bounds} Bounds
  * @typedef {import("../modules").CharacterTypeId} CharacterTypeId
  * 
+ * 
  * @typedef BulletStruct
  * @prop {0|1} isValid
  * @prop {number} id
@@ -15,6 +16,29 @@ import {Character, Bullet, JsonData, ObjectPool, FieldGrid, GOManager} from "../
  * @prop {number} posY
  * @prop {number} ownerId
  * @prop {number} dmg
+ * 
+ * @typedef EnemyStruct
+ * @prop {0|1} isValid
+ * @prop {number} id
+ * @prop {number} size
+ * @prop {number} posX
+ * @prop {number} posY
+ * @prop {number} hitDmg
+ * @prop {number} rewardScore
+ * @prop {number} isAlpha
+ * 
+ * @typedef PlayerStruct
+ * @prop {0|1} isValid
+ * @prop {number} id
+ * @prop {number} size
+ * @prop {number} posX
+ * @prop {number} posY
+ * @prop {number} runnableCnt
+ * @prop {number} magicUsableCnt
+ * @prop {0|1} isEnpowered
+ * @prop {number} unbeatableTime
+ * @prop {number} unbeatableCnt 
+ * @prop {number} bulletDmg
  */
 
 /**
@@ -54,6 +78,14 @@ export default class Stage{
         colorG: {type: "Uint8", offset: 22, bytes: 1},
         colorB: {type: "Uint8", offset: 23, bytes: 1}
     });
+    // TODO: enemyManagerとplayerManagerを作る.
+    /**@type {GOManager<>} */
+    _enemyManager = new GOManager(JsonData.config.STAGE.CHARACTERS_CAPACITY, {
+
+    });
+    _playerManager = new GOManager(1, {
+        isValid: {type: "Uint8", offset: 0, bytes: 1},
+    })
 
     /**
      * @param {Bounds} bounds 

@@ -34,7 +34,7 @@ export default class Character{
     /**@type {number} */
     rewardScore;
     frame = 0;
-    bulletShootable = true;
+    bulletShootableCnt = 0;
     /**@type {Position} */
     posBegin;
     /**@type {number[6]} */
@@ -378,17 +378,17 @@ export default class Character{
 
     /**
      * 発射可能な場合、弾丸を発射します
-     * @note 現在プレイヤー用の実装になっています. 必要に応じて拡張予定.
+     * @note 現在プレイヤー用の実装. 必要に応じて拡張予定.
      * @param {Stage} stage 弾丸の出現するステージ
      * @returns {void}
      */
     shootBullet(stage){
-        if(!this.bulletShootable) return;
+        if(this.bulletShootableCnt > 0) return;
 
         const {ENPOWERED_BULLET, BULLET} = JsonData.config;
         const {SHOOTABLE_INTERVAL_SEC, SPEED, SIZE, COLOR} = (this.isEnpowered) ? ENPOWERED_BULLET : BULLET;
 
-        this.bulletShootable = false;
+        this.bulletShootableCnt = SHOOTABLE_INTERVAL_SEC * 1000;
         shoot(this, { x: 0, y: -SPEED });
         shoot(this, { x: SPEED, y: 0 });
         shoot(this, { x: -SPEED, y: 0 });
@@ -397,9 +397,7 @@ export default class Character{
             shoot(this, { x: -SPEED, y: -SPEED });
             shoot(this, { x: 0, y: SPEED });
         }
-        SoundManager.play("shoot", 1.25);
-
-        setTimeout(() => (this.bulletShootable = true), SHOOTABLE_INTERVAL_SEC * 1000);
+        setTimeout(() => SoundManager.play("shoot", 1.25), 0);
 
         /**
          * @param {Character} chr 
@@ -408,6 +406,15 @@ export default class Character{
         function shoot(chr, speedVec){
             stage.spawnBlt(speedVec, chr.bulletDmg, chr, COLOR, chr.pos, SIZE);
         }
+    }
+
+    /**
+     * bulletShootableCntを減算します.
+     * @param {number} num 
+     */
+    decrementBulletShootableCnt(num){
+        this.bulletShootableCnt -= num;
+        this.bulletShootableCnt = Math.max(0, this.bulletShootableCnt);
     }
 
     /**
