@@ -15,19 +15,12 @@ const contexts = {
 	ui: loadContext(canvs.ui)
 };
 
-
-// Module.onRuntimeInitialized = () => {
-// 	/**@type {() => number} */
-// 	const hello = Module.cwrap("hello", "number", []);
-// 	console.log("aaa");
-// 	hello();
-// }
-
-// createModule().then(Module => {
-// 	const hello = Module.cwrap("hello", "number", []);
-// 	console.log("aaa");
-// 	hello();
-// });
+const C = {};
+createModule().then(Module => {
+	C.calc = Module.cwrap("calc", "number", []);
+	console.log("C modules were already imported.");
+	console.log(C.calc());
+});
 
 window.onload = async () => {
 	await JsonData.initAll();

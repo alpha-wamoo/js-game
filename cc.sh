@@ -1,0 +1,21 @@
+#!/bin/bash
+
+FUNCTIONS='["_calc"]'
+
+emcc c-modules/cmodules.c \
+  -O3 \
+  -s WASM=1 \
+  -s MODULARIZE=1 \
+  -s EXPORT_ES6=1 \
+  -s EXPORTED_FUNCTIONS=$FUNCTIONS \
+  -s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' \
+  -o cmodules.js
+
+# emcc c-modules/cmodules.cpp \
+#   -o cmodules.js \
+#   -s WASM=1 \
+#   -s MODULARIZE=1 \
+#   -s EXPORT_ES6=1 \
+#   -s EXPORTED_FUNCTIONS=$FUNCTIONS \
+#   -s EXPORTED_RUNTIME_METHODS='["cwrap","ccall"]' \
+#   -std=c++20

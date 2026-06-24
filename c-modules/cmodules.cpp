@@ -47,27 +47,20 @@ typedef struct Pool{
     Bullet bullets[128];
 } Pool;
 
+extern "C"{
+    Vector2* createVector2(float x, float y){
+        Vector2* vec2;
+        vec2->x = x;
+        vec2->y = y;
+        return vec2;
+    }
 
-Vector2* createVector2(float x, float y){
-    Vector2 vec2 = {x, y};
-    return &vec2;
-}
+    Enemy* createEnemy(uint8_t id, uint8_t size, Vector2 pos, Vector2 speed, uint8_t hitDmg, uint8_t bulletDmg, uint8_t rewardScore, float bulletShootableCnt){
+        Enemy* enemy;
 
-RGB* createRGB(uint8_t r, uint8_t g, uint8_t b){
-    RGB rgb = {r, g, b};
-    return &rgb;
-}
+    }
 
-Enemy* createEnemy(uint8_t id, uint8_t size, Vector2 pos, Vector2 speed, uint8_t hitDmg, uint8_t bulletDmg, uint8_t rewardScore, float bulletShootableCnt){
-    Enemy* enemy;
-    return enemy;
-}
+    Player* createPlayer(){
 
-Player* createPlayer(){
-    Player* player;
-    return player;
-}
-
-uint8_t calc(){
-    return 10;
+    }
 }

@@ -64,28 +64,28 @@ export default class Stage{
     /**@private @type {number} */
     _level = 1;
     /**@type {GOManager<BulletStruct>} */
-    _bulletManager = new GOManager(JsonData.config.STAGE.BULLETS_CAPACITY, {
-        isValid: {type: "Uint8", offset: 0, bytes: 1},
-        id: {type:"Uint8", offset: 1, bytes: 1},
-        size: {type: "Uint8", offset: 2, bytes: 1},
-        posX: {type: "Float32", offset: 3, bytes: 4},
-        posY: {type: "Float32", offset: 7, bytes: 4},
-        ownerId: {type: "Uint8", offset: 11, bytes: 1},
-        dmg: {type: "Uint8", offset: 12, bytes: 1},
-        speedX: {type: "Float32", offset: 13, bytes: 4},
-        speedY: {type: "Float32", offset: 17, bytes: 4},
-        colorR: {type: "Uint8", offset: 21, bytes: 1},
-        colorG: {type: "Uint8", offset: 22, bytes: 1},
-        colorB: {type: "Uint8", offset: 23, bytes: 1}
-    });
+    // _bulletManager = new GOManager(JsonData.config.STAGE.BULLETS_CAPACITY, {
+    //     isValid: {type: "Uint8", offset: 0, bytes: 1},
+    //     id: {type:"Uint8", offset: 1, bytes: 1},
+    //     size: {type: "Uint8", offset: 2, bytes: 1},
+    //     posX: {type: "Float32", offset: 3, bytes: 4},
+    //     posY: {type: "Float32", offset: 7, bytes: 4},
+    //     ownerId: {type: "Uint8", offset: 11, bytes: 1},
+    //     dmg: {type: "Uint8", offset: 12, bytes: 1},
+    //     speedX: {type: "Float32", offset: 13, bytes: 4},
+    //     speedY: {type: "Float32", offset: 17, bytes: 4},
+    //     colorR: {type: "Uint8", offset: 21, bytes: 1},
+    //     colorG: {type: "Uint8", offset: 22, bytes: 1},
+    //     colorB: {type: "Uint8", offset: 23, bytes: 1}
+    // });
     // TODO: enemyManagerとplayerManagerを作る.
     /**@type {GOManager<>} */
-    _enemyManager = new GOManager(JsonData.config.STAGE.CHARACTERS_CAPACITY, {
+    // _enemyManager = new GOManager(JsonData.config.STAGE.CHARACTERS_CAPACITY, {
 
-    });
-    _playerManager = new GOManager(1, {
-        isValid: {type: "Uint8", offset: 0, bytes: 1},
-    })
+    // });
+    // _playerManager = new GOManager(1, {
+    //     isValid: {type: "Uint8", offset: 0, bytes: 1},
+    // })
 
     /**
      * @param {Bounds} bounds 
