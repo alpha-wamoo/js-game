@@ -1,6 +1,6 @@
 /// <reference path="./types/emscripten.d.ts" />
 
-import {Game, Stage, Util, JsonData} from "./modules.js";
+import {Game, Stage, Util, JsonData, C} from "./modules.js";
 import createModule from "./cmodules.js";
 
 const canvs = {
@@ -15,11 +15,16 @@ const contexts = {
 	ui: loadContext(canvs.ui)
 };
 
-const C = {};
+
 createModule().then(Module => {
-	C.calc = Module.cwrap("calc", "number", []);
+	const cFunctions = {
+		"init": ["init", "void", []]
+	};
+	Object.entries(cFunctions).forEach(([fnName, wrappingArgs]) => {
+		C[fnName] = Module.cwrap(wrappingArgs);
+	});
 	console.log("C modules were already imported.");
-	console.log(C.calc());
+
 });
 
 window.onload = async () => {

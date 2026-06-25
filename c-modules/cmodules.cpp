@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <vector>
+#include <iostream>
 
 typedef struct Vector2{
     float x, y;

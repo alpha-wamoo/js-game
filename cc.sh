@@ -1,8 +1,9 @@
 #!/bin/bash
 
-FUNCTIONS='["_calc"]'
+SRCS="c-modules/cmain.c c-modules/src/Vector2.c c-modules/src/RGB.c"
+FUNCTIONS='["_init"]'
 
-emcc c-modules/cmodules.c \
+emcc $SRCS \
   -O3 \
   -s WASM=1 \
   -s MODULARIZE=1 \
