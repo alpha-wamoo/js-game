@@ -5,13 +5,23 @@
         "SPEED": 800,
         "SIZE": 12,
         "SHOOTABLE_INTERVAL_SEC": 0.125,
-        "COLOR" : "rgb(144, 202, 255)"
+        "COLOR" : "rgb(144, 202, 255)",
+        "RGB": {
+            "R": 144,
+            "G": 202,
+            "B": 255
+        }
     },
     "ENPOWERED_BULLET": {
         "SPEED": 1250,
         "SIZE": 24,
         "SHOOTABLE_INTERVAL_SEC": 0.1,
-        "COLOR": "rgb(227, 194, 85)"
+        "COLOR": "rgb(227, 194, 85)",
+        "RGB":{
+            "R": 227,
+            "G": 194,
+            "B": 85
+        }
     },
     "NATURAL_HEAL": {
         "INTERVAL": 10000,
