@@ -130,6 +130,12 @@ Config *_loadConfig(const char *json){
     cJSON_Delete(enemyAlpha);
     cJSON_Delete(enemy);
 
+    cJSON *stage = getNodePtr(root, "STAGE");
+    config->STAGE->BULLETS_CAPACITY = getNodePtr(stage, "BULLETS_CAPACITY")->valueint;
+    config->STAGE->CHARACTERS_CAPACITY = getNodePtr(stage, "STAGE_CAPACITY")->valueint;
+    config->STAGE->CELL_SIZE = getNodePtr(stage, "CELL_SIZE")->valueint;
+    cJSON_Delete(stage);
+
     cJSON_Delete(root);
     return config;
 }
