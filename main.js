@@ -16,19 +16,28 @@ const contexts = {
 };
 
 
-createModule().then(Module => {
+createModule().then(async Module => {
 	const cFunctions = {
-		"init": ["init", "void", []]
+		"initGameContext": ["initGameContext", "boolean", ["string", "string", "string"]]
 	};
-	Object.entries(cFunctions).forEach(([fnName, wrappingArgs]) => {
-		C[fnName] = Module.cwrap(wrappingArgs);
-	});
-	console.log("C modules were already imported.");
 
+	Object.entries(cFunctions).forEach(([fnName, args]) => {
+		C[fnName] = Module.cwrap(...args);
+	});
+
+	console.log("initializing C processes...");
+	const isSuccessed = C.initGameContext(
+		Module.allocateUTF8(await (await fetch("./json/enemiesDefinition.json")).text()),
+		Module.allocateUTF8(await (await fetch("./json/playerDefinition.json")).text()),
+		Module.allocateUTF8(await (await fetch("./json/config.json")).text())
+	);
+	if(!isSuccessed) console.warn("failure...............");
+	else console.log("C processes were completely initialized.");
 });
 
 window.onload = async () => {
 	await JsonData.initAll();
+	await initC();
 
 	const {CANV_W, CANV_H} = JsonData.config;
 	const stage = new Stage({ min: {x:0, y:0}, max: {x:CANV_W, y:CANV_H} });

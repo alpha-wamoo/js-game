@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -8,11 +9,7 @@
 
 typedef RGB RGB_t;
 
-typedef enum JSON_LOADED_RESULT{
-    JSON_LOADED_SUCCESS = 1,
-    JSON_LOADED_FAILURE = 0
-} JSON_LOADED_RESULT;
-
+// - エネミーのデフォルトデータ
 typedef struct EnemyDefinition{
     bool existAlpha;
     char *imgSrc, *motionKey;
@@ -21,16 +18,19 @@ typedef struct EnemyDefinition{
     float speed;
 } EnemyDefinition;
 
+// - typeIdごとのデフォルトデータ
 typedef struct EnemiesDefinition{
     EnemyDefinition *basic, *tough, *small, *tricky;
 } EnemiesDefinition;
 
+// - プレイヤーのデフォルトデータ
 typedef struct PlayerDefinition{
     uint8_t size, bltDmg;
     uint16_t speed, maxHp, unbeatableTime, beginPosX, beginPosY;
     char* imgSrc;
 } PlayerDefinition;
 
+// - ゲームの設定データ
 typedef struct Config{
     uint16_t CANV_H, CANV_W;
 
@@ -64,13 +64,10 @@ typedef struct JsonData{
     Config *config;
 } JsonData;
 
-// - loadAllJsons実行後に使用可能
-JsonData *jsonData;
-
 /**
  * @param enemiesDefinitionJson EnemiesDefinition構造体を生成するjson形式の文字列
  * @param playerDefinitionJson PlayerDefinition構造体を生成するjson形式の文字列
  * @param configJson Config構造体を生成するjson形式の文字列
- * @returns 成功時はJSON_LOADED_SUCCESS. 失敗時はJSON_LOADED_FAILURE
+ * @returns 読み込んだjsonのデータ. 失敗時はNULL.
  */
-JSON_LOADED_RESULT loadAllJsons(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson);
+JsonData *json_loadAll(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson);

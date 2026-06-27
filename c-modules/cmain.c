@@ -1,15 +1,31 @@
 #include "header/framework.h"
 
-Pool *enemiesPool;
-Pool *bulletsPool;
+// global structures
 
+GameContext *game = NULL;
 
-void init(){
-    initPool(enemiesPool, Enemy, 128);
-    initPool(bulletsPool, Bullet, 128);
+// functions definition
+
+/**
+ * - 新たにゲーム状態を生成します
+ * @param enemiesDefinitionJson enemiesDefinition.jsonの文字列
+ * @param playerDefinitionJson playerDefinition.jsonの文字列
+ * @param configJson config.jsonの文字列
+ * @returns ゲーム状態の初期化に成功したらtrue
+ */
+EMSCRIPTEN_KEEPALIVE
+bool initGameContext(const char* enemiesDefinitionJson, const char* playerDefinitionJson, const char* configJson){
+    printf("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
+    game = malloc(sizeof(GameContext));
+    game->jsonData = json_loadAll(enemiesDefinitionJson, playerDefinitionJson, configJson);
+    if(!game->jsonData || !game->jsonData->config->STAGE) return false;
+    printf("wwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+    game->enemiesPool = pool_newInstance(game->jsonData->config->STAGE->CHARACTERS_CAPACITY, sizeof(Enemy), 0);
+    game->bulletsPool = pool_newInstance(game->jsonData->config->STAGE->BULLETS_CAPACITY, sizeof(Bullet), 0);
+    return true;
 }
 
-Player* createPlayer(){
-    Player* player;
-    return player;
-}
+// Player* createPlayer(){
+//     Player* player;
+//     return player;
+// }

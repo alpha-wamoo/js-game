@@ -4,13 +4,12 @@
 #include "Vector2.h"
 
 typedef struct Player{
-    bool isValid;
-    uint8_t id, size;
+    uint8_t id, size, bulletDmg, maxHp;
+    bool isValid, isEnpowered;
+    float bulletShootableCnt, runnableCnt, magicUsableCnt, unbeatableTime, unbeatableCnt, hp;
     Vector2 pos;
-    uint8_t bulletDmg;
-    float bulletShootableCnt, runnableCnt, magicUsableCnt;
-    bool isEnpowered;
-    float unbeatableTime, unbeatableCnt;
-    uint8_t maxHp;
-    float hp;
 } Player;
+
+void player_remove();
+
+void player_move();

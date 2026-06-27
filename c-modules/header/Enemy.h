@@ -2,29 +2,43 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "Vector2.h"
 #include "cJSON.h"
+#include "JsonData.h"
+#include "GameContext.h"
+#include "Pool.h"
+#include "util.h"
+
+#define IS_SAME_STR(str1, str2) (strcasecmp((str1), (str2)) == 0)
+
+typedef enum EnemyTypeId{
+    TYPE_BASIC,
+    TYPE_TOUGH,
+    TYPE_SMALL,
+    TYPE_TRICKY
+} EnemyTypeId;
 
 typedef struct Enemy{
-    bool isValid;
-    uint8_t id, size;
+    uint8_t id, size, maxHp, hitDmg, bulletDmg, rewardScore;
+    bool isValid, isAlpha;
     Vector2 pos;
-    uint8_t hitDmg, bulletDmg, rewardScore;
-    float bulletShootableCnt;
-    Vector2 speed;
-    uint8_t maxHp;
-    float hp;
-    bool isAlpha;
-    float randoms[6];
+    float speed, bulletShootableCnt, hp, randoms[8];
+    char *imgSrc, *motionKey;
+    EnemyTypeId typeId;
 } Enemy;
 
-Enemy* newEnemy(
-    uint8_t size,
-    Vector2* pos,
-    Vector2* speed,
-    uint8_t maxHp,
-    bool isAlpha,
-    uint8_t hitDmg,
-    uint16_t rewardScore,
-    float bulletShootableCnt
-);
+/**
+ * - 新たなEnemyを出現させます
+ * @param game ゲーム状態
+ * @param typeId 出現させるEnemyの種類
+ * @returns 出現させたEnemy
+ */
+Enemy *enemy_spawn(GameContext *game, const char *typeId);
+
+/**
+ * - Enemyを消滅させます
+ * @param game ゲーム状態
+ * @param enemy 消滅させるEnemy
+ */
+void enemy_remove(GameContext *game, Enemy *enemy);

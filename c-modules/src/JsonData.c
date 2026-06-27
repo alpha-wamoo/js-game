@@ -11,6 +11,7 @@ EnemyDefinition *_createEnemyDefinition(cJSON* root, const char *enemyType){
     cJSON *obj = getNodePtr(root, enemyType);
     if(obj == NULL) return NULL;
 
+    // root/[enemyType]/*
     enemyDefinition->existAlpha = getNodePtr(obj, "existAlpha")->valueint;
     enemyDefinition->imgSrc = getNodePtr(obj, "imgSrc")->valuestring;
     enemyDefinition->motionKey = getNodePtr(obj, "motionKey")->valuestring;
@@ -53,6 +54,7 @@ PlayerDefinition* _loadPlayerDefinition(const char *json){
     cJSON *root = cJSON_Parse(json);
     if(root == NULL) return NULL;
 
+    // root/*
     playerDefinition->bltDmg = getNodePtr(root, "bltDmg")->valueint;
     playerDefinition->imgSrc = getNodePtr(root, "imgSrc")->valuestring;
     playerDefinition->maxHp = getNodePtr(root, "max_hp")->valueint;
@@ -60,6 +62,7 @@ PlayerDefinition* _loadPlayerDefinition(const char *json){
     playerDefinition->speed = getNodePtr(root, "speed")->valueint;
     playerDefinition->unbeatableTime = getNodePtr(root, "unbeatableTime")->valueint;
 
+    // root/beginPos/*
     cJSON *beginPos = getNodePtr(root, "beginPos");
     playerDefinition->beginPosX = getNodePtr(beginPos, "x")->valueint;
     playerDefinition->beginPosY = getNodePtr(beginPos, "y")->valueint;
@@ -79,6 +82,7 @@ RGB *_createRGBFromJson(cJSON *parent){
     cJSON *rgbNode = getNodePtr(parent, "RGB");
     if(rgbNode == NULL) return NULL;
 
+    // [parent]/RGB/*
     rgb->r = getNodePtr(rgbNode, "R")->valueint;
     rgb->g = getNodePtr(rgbNode, "G")->valueint;
     rgb->b = getNodePtr(rgbNode, "B")->valueint;
@@ -97,9 +101,11 @@ Config *_loadConfig(const char *json){
     cJSON *root = cJSON_Parse(json);
     if(root == NULL) return NULL;
 
+    // root/*
     config->CANV_H = getNodePtr(root, "CANV_H")->valueint;
     config->CANV_W = getNodePtr(root, "CANV_W")->valueint;
 
+    // root/BULLET/*
     cJSON *bullet = getNodePtr(root, "BULLET");
     config->BULLET->RGB = _createRGBFromJson(bullet);
     config->BULLET->SIZE = getNodePtr(bullet, "SIZE")->valueint;
@@ -107,6 +113,7 @@ Config *_loadConfig(const char *json){
     config->BULLET->SHOOTABLE_INTERVAL_SEC = getNodePtr(bullet, "SHOOTABLE_INTERVAL_SEC")->valuedouble;
     cJSON_Delete(bullet);
 
+    // root/ENPOWERED_BULLET/*
     cJSON *enpoweredBullet = getNodePtr(root, "ENPOWERED_BULLET");
     config->ENPOWERED_BULLET->RGB = _createRGBFromJson(enpoweredBullet);
     config->ENPOWERED_BULLET->SIZE = getNodePtr(enpoweredBullet, "SIZE")->valueint;
@@ -114,13 +121,16 @@ Config *_loadConfig(const char *json){
     config->ENPOWERED_BULLET->SHOOTABLE_INTERVAL_SEC = getNodePtr(enpoweredBullet, "SHOOTABLE_INTERVAL_SEC")->valuedouble;
     cJSON_Delete(enpoweredBullet);
 
+    // root/NATURAL_HEAL/*
     cJSON *NaturalHeal = getNodePtr(root, "NATURAL_HEAL");
     config->NATURAL_HEAL->HP = getNodePtr(NaturalHeal, "HP")->valueint;
     config->NATURAL_HEAL->INTERVAL = getNodePtr(NaturalHeal, "NATURAL_HEAL")->valueint;
     cJSON_Delete(NaturalHeal);
 
+    // root/ENEMY/*
     cJSON *enemy = getNodePtr(root, "ENEMY");
     config->ENEMY->ALPHA_RATE = getNodePtr(enemy, "ALPHA_RATE")->valuedouble;
+    // root/ENEMY/ALPHA/*
     cJSON *enemyAlpha = getNodePtr(enemy, "ALPHA");
     config->ENEMY->ALPHA->DMG_RATE = getNodePtr(enemyAlpha, "DMG_RATE")->valuedouble;
     config->ENEMY->ALPHA->HP_RATE = getNodePtr(enemyAlpha, "HP_RATE")->valuedouble;
@@ -130,6 +140,7 @@ Config *_loadConfig(const char *json){
     cJSON_Delete(enemyAlpha);
     cJSON_Delete(enemy);
 
+    // root/STAGE/*
     cJSON *stage = getNodePtr(root, "STAGE");
     config->STAGE->BULLETS_CAPACITY = getNodePtr(stage, "BULLETS_CAPACITY")->valueint;
     config->STAGE->CHARACTERS_CAPACITY = getNodePtr(stage, "STAGE_CAPACITY")->valueint;
@@ -140,15 +151,16 @@ Config *_loadConfig(const char *json){
     return config;
 }
 
-JSON_LOADED_RESULT loadAllJsons(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson){
+JsonData *json_loadAll(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson){
     EnemiesDefinition *enemiesDefinition = _loadEnemiesDefinition(enemiesDefinitionJson);
     PlayerDefinition *playerDefinition = _loadPlayerDefinition(playerDefinitionJson);
     Config *config = _loadConfig(configJson);
-    if(enemiesDefinition == NULL || playerDefinition == NULL || configJson == NULL) return JSON_LOADED_FAILURE;
+    if(enemiesDefinition == NULL || playerDefinition == NULL || configJson == NULL) return NULL;
 
+    JsonData *jsonData = malloc(sizeof(JsonData));
     jsonData = malloc(sizeof(JsonData));
     jsonData->enemiesDefinition = enemiesDefinition;
     jsonData->playerDefinition = playerDefinition;
     jsonData->config = config;
-    return JSON_LOADED_SUCCESS;
+    return jsonData;
 }

@@ -5,8 +5,8 @@
 #include "RGB.h"
 
 typedef struct Bullet{
-    bool isValid;
     uint8_t id, size;
+    bool isValid;
     Vector2 pos, speed;
     uint8_t ownerId, dmg;
     RGB color;
