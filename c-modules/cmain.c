@@ -18,13 +18,21 @@ bool initGameContext(const char* enemiesDefinitionJson, const char* playerDefini
     printf("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
     game = malloc(sizeof(GameContext));
     game->jsonData = json_loadAll(enemiesDefinitionJson, playerDefinitionJson, configJson);
-    if(!game->jsonData || !game->jsonData->config->STAGE) return false;
+    if(!game || !game->jsonData || !game->jsonData->config || !game->jsonData->config->STAGE) return false;
     printf("wwwwwwwwwwwwwwwwwwwwwwwwwwwww");
     game->enemiesPool = pool_newInstance(game->jsonData->config->STAGE->CHARACTERS_CAPACITY, sizeof(Enemy), 0);
     game->bulletsPool = pool_newInstance(game->jsonData->config->STAGE->BULLETS_CAPACITY, sizeof(Bullet), 0);
+    game->keyboard = keyboard_newInstance();
     return true;
 }
 
+/**
+ * - GameContextの参照を取得します
+ */
+EMSCRIPTEN_KEEPALIVE
+GameContext *getGameContextPtr(){
+    return game;
+}
 // Player* createPlayer(){
 //     Player* player;
 //     return player;

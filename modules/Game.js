@@ -1,5 +1,5 @@
 /**@module Game */
-import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager} from "../modules.js";
+import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager, C} from "../modules.js";
 import {default as constructDTO} from "./worker/HittingDetector.js";
 
 /**
@@ -135,12 +135,14 @@ export default class Game{
         // TODO: score
 
         // keyboard monitor
+        Keyboard.updateC();
+        // TODO: ここをCにする
         if(Keyboard.isPressed("d")) pl.move(stage, "right");
         if(Keyboard.isPressed("a")) pl.move(stage, "left");
         if(Keyboard.isPressed("w")) pl.move(stage, "up");
         if(Keyboard.isPressed("s")) pl.move(stage, "down");
         if(Keyboard.isPressed(" ")) pl.shootBullet(stage);
-        if(Keyboard.isAllPressed("shift", "enter")) pl.useMagic(stage, this);    
+        if(Keyboard.isAllPressed("shift", "enter")) pl.useMagic(stage, this);
         else if(Keyboard.isPressed("enter")) pl.runFaster();
 
         // enemies update

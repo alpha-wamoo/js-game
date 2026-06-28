@@ -13,7 +13,10 @@
 
 #include "Pool.h"
 #include "JsonData.h"
+#include "Keyboard.h"
 #include "GameContext.h"
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Player.h"
+
+#define FPS 60

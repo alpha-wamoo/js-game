@@ -1,3 +1,4 @@
+import {C} from "../modules.js";
 /**@module Keyboard */
 
 
@@ -5,41 +6,65 @@
  * - キーボード入力を管理します
  */
 export default class Keyboard{
-    /**@private @type {Map<string, number>} */
-    static _keysCntMap = new Map();
+    /**@private @static @type {{[key: string]: number}} */
+    static _KEY_IDX = {
+        "w": null,
+        "a": null,
+        "s": null,
+        "d": null,
+        "shift": null,
+        " ": null,
+        "enter": null
+    };
+    /**@public @static @type {number} */
+    static KEY_NUMBERS = Object.keys(Keyboard._KEY_IDX).length;
+    /**@private @static @type {Uint16Array<ArrayBuffer>} */
+    static _keyPressedCnts = new Uint16Array(Keyboard.KEY_NUMBERS);
+    /**@private @static @type {number} */
+    static _keyPressedCntsPtr = null;
 
     /**
-     * イベントデータから、押されたキーを表す文字列を取得します
-     * @private @method
-     * @param {KeyboardEvent} ev 
-     * @returns {string}
+     * - 初期化します
+     * @public @static @method
      */
-    static _getKey(ev){
-        return ev.key.toLowerCase();
+    static init(){
+        for(let i = 0; i < Keyboard.KEY_NUMBERS; i++) Keyboard._KEY_IDX[i] = i;
+        Keyboard._keyPressedCntsPtr = C.module._malloc(Keyboard.KEY_NUMBERS * 2);
     }
 
     /**
-     * あるキーが押された時間の長さを保持します(ms)
-     * @public @method
+     * - CモジュールのKeyboardを更新します
+     * @public @static @method
+     */
+    static updateC(){
+        // const gameContextPtr = cmodule._getGameContextPtr();
+        C.module.HEAPU16.set(Keyboard._keyPressedCnts, Keyboard._keyPressedCntsPtr >> 1);
+        C.keyboard_update(C.gameContextPtr, Keyboard._keyPressedCntsPtr, Keyboard.KEY_NUMBERS);
+    }
+
+    /**
+     * - あるキーが押された時間の長さを保持します(ms)
+     * @public @static @method
      * @param {string} key 時間を取得したいキー
      * @returns {number}
      */
     static getPressedCnt(key){
-        return Keyboard._keysCntMap.get(key) ?? 0;
+        return Keyboard._keyPressedCnts[Keyboard._KEY_IDX[key]] ?? 0;
     }
 
     /**
-     * キーが押されているかを判定します
-     * @public @method
+     * - キーが押されているかを判定します
+     * @public @static @method
      * @param {string} key 判定したいキー
      * @returns {boolean} 推されていればtrue.
      */
     static isPressed(key){
-        return Keyboard.getPressedCnt(key) >= 1;
+        const cnt = Keyboard._keyPressedCnts[Keyboard._KEY_IDX[key]] ?? 0;
+        return cnt >= 1;
     }
 
     /**
-     * 与えられたキーが全て押されているかを判定します
+     * - 与えられたキーが全て押されているかを判定します
      * @public @method
      * @param  {string[]} keys 判定対象のキー
      * @returns {boolean} 全て押されていればtrue.
@@ -49,33 +74,32 @@ export default class Keyboard{
     }
 
     /**
-     * キーが押されたときに実行します
+     * - キーが押されたときに実行します
      * @public @method
      * @param {KeyboardEvent} ev 
      */
     static keydown(ev){
         ev.preventDefault();
-        // ev.stopPropagation();
-        const key = Keyboard._getKey(ev);
-        const prevValue = Keyboard._keysCntMap.get(key) ?? 0;
-        this._keysCntMap.set(key, prevValue + 1);
+        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[ev.key.toLowerCase()]] += 1;
         // console.log(`down: ${key}`);
     }
 
     /**
-     * キーから離されたときに実行します
+     * - キーから離されたときに実行します
      * @public @method
      * @param {KeyboardEvent} ev
      */
     static keyup(ev){
         ev.preventDefault();
-        // ev.stopPropagation();
-        const key = Keyboard._getKey(ev);
-        Keyboard._keysCntMap.delete(key);
+        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[ev.key.toLowerCase()]] = 0;
         // console.log(`up: ${key}`);
     }
 
+    /**
+     * - キー情報をクリアします
+     * @public @static @method
+     */
     static clear(){
-        Keyboard._keysCntMap.clear();
+        for(let i = 0; i < Keyboard.KEY_NUMBERS; i++) Keyboard._keyPressedCnts[i] = 0;
     }
 }
