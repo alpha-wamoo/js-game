@@ -7,6 +7,7 @@
 #include <emscripten/emscripten.h>
 
 #include "cJSON.h"
+#include "console.h"
 #include "Vector2.h"
 #include "RGB.h"
 #include "util.h"
@@ -18,5 +19,3 @@
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Player.h"
-
-#define FPS 60

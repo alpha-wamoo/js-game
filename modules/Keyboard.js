@@ -6,16 +6,28 @@ import {C} from "../modules.js";
  * - キーボード入力を管理します
  */
 export default class Keyboard{
-    /**@private @static @type {{[key: string]: number}} */
+    /**
+     * - 値はinitで自動設定
+     * @private @static @type {{[key: string]: number}}
+     */
     static _KEY_IDX = {
-        "w": null,
-        "a": null,
-        "s": null,
-        "d": null,
-        "shift": null,
-        " ": null,
-        "enter": null
+        "w": -1,
+        "a": -1,
+        "s": -1,
+        "d": -1,
+        "shift": -1,
+        " ": -1,
+        "enter": -1
     };
+    // static _KEY_IDX = {
+    //     "w": 0,
+    //     "a": 1,
+    //     "s": 2,
+    //     "d": 3,
+    //     "shift": 4,
+    //     " ": 5,
+    //     "enter": 6
+    // };
     /**@public @static @type {number} */
     static KEY_NUMBERS = Object.keys(Keyboard._KEY_IDX).length;
     /**@private @static @type {Uint16Array<ArrayBuffer>} */
@@ -28,7 +40,7 @@ export default class Keyboard{
      * @public @static @method
      */
     static init(){
-        for(let i = 0; i < Keyboard.KEY_NUMBERS; i++) Keyboard._KEY_IDX[i] = i;
+        for(let i = 0, keys = Object.keys(Keyboard._KEY_IDX); i < Keyboard.KEY_NUMBERS; i++) Keyboard._KEY_IDX[keys[i]] = i;
         Keyboard._keyPressedCntsPtr = C.module._malloc(Keyboard.KEY_NUMBERS * 2);
     }
 

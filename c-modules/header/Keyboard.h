@@ -7,7 +7,7 @@
 typedef struct GameContext GameContext;
 
 typedef struct Keyboard{
-    uint16_t *keyFrameCnts;
+    uint16_t *keyCnts;
     uint8_t keyNumbers;
 } Keyboard;
 
@@ -36,5 +36,9 @@ Keyboard *keyboard_newInstance();
 EMSCRIPTEN_KEEPALIVE
 void keyboard_update(GameContext *game, uint16_t *keyFrameCnts, int length);
 
-
-// EMSCRIPTEN_KEEPALIVE void keyboard_update(GameContext *game, uint16_t *keyFrameCnts, int length);
+/**
+ * - キーが押されている時間を取得します
+ * @param game ゲーム状態
+ * @param key キー
+ */
+uint16_t keyboard_pressedCnt(GameContext *game, Key key);

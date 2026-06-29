@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "RGB.h"
 #include "cJSON.h"
+#include "console.h"
 
 #define getNodePtr(parentPtr, itemName) (cJSON_GetObjectItemCaseSensitive((parentPtr), (itemName)))
 
@@ -26,7 +27,8 @@ typedef struct EnemiesDefinition{
 // - プレイヤーのデフォルトデータ
 typedef struct PlayerDefinition{
     uint8_t size, bltDmg;
-    uint16_t speed, maxHp, unbeatableTime, beginPosX, beginPosY;
+    uint16_t speed, maxHp, beginPosX, beginPosY;
+    float unbeatableTime;
     char* imgSrc;
 } PlayerDefinition;
 
@@ -37,7 +39,7 @@ typedef struct Config{
     struct ConfigBullet{
         uint16_t SPEED, SIZE;
         float SHOOTABLE_INTERVAL_SEC;
-        RGB_t *RGB;
+        RGB_t RGB;
     } *BULLET, *ENPOWERED_BULLET;
 
     struct ConfigNaturalHeal{
@@ -58,16 +60,31 @@ typedef struct Config{
     } *STAGE;
 } Config;
 
+typedef struct SkillDefinition{
+    struct SkillDefinitionRunFaster{
+        uint8_t CNT_UPDATE_INTERVAL;
+        uint16_t DURATION, INTERVAL;
+        float SPEED_RATE;
+    } *RUN_FASTER;
+    struct SkillDefinitionMagic{
+        uint8_t DAMAGE, CNT_UPDATE_INTERVAL;
+        uint16_t INTERVAL, ATK_REACH;
+        float SPEED_RATE, BUFF_DELAY_SEC, BUFF_DURATION_SEC;
+    } *MAGIC;
+} SkillDefinition;
+
 typedef struct JsonData{
     EnemiesDefinition *enemiesDefinition;
     PlayerDefinition *playerDefinition;
     Config *config;
+    SkillDefinition *skillDefinition;
 } JsonData;
 
 /**
  * @param enemiesDefinitionJson EnemiesDefinition構造体を生成するjson形式の文字列
  * @param playerDefinitionJson PlayerDefinition構造体を生成するjson形式の文字列
  * @param configJson Config構造体を生成するjson形式の文字列
+ * @param skillDefinitionJson SkillDefinition構造体を生成するjson形式の文字列
  * @returns 読み込んだjsonのデータ. 失敗時はNULL.
  */
-JsonData *json_loadAll(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson);
+JsonData *json_loadAll(const char *enemiesDefinitionJson, const char *playerDefinitionJson, const char *configJson, const char *skillDefinitionJson);

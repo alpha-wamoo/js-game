@@ -17,28 +17,20 @@ const contexts = {
 
 
 createModule().then(async Module => {
-	C.module = Module;
-	const cFunctions = {
-		"initGameContext": ["initGameContext", "boolean", ["string", "string", "string"]],
-		"keyboard_update": ["keyboard_update", null, ["number", "number", "number"]]
-	};
+	C.init(Module);
 
-	Object.entries(cFunctions).forEach(([fnName, args]) => {
-		C[fnName] = Module.cwrap(...args);
-	});
-	/**@type {number} */
-	C.gameContextPtr = Module._getGameContextPtr();
-
-	console.log("initializing C processes...");
-	const isSuccessed = C.initGameContext(
+	console.log("C: initializing...");
+	if(C.initGameContext(
 		await (await fetch("./json/enemiesDefinition.json")).text(),
 		await (await fetch("./json/playerDefinition.json")).text(),
-		await (await fetch("./json/config.json")).text()
-	);
-	if(!isSuccessed) console.warn("C.initGameContext was failure...............");
+		await (await fetch("./json/config.json")).text(),
+		await (await fetch("./json/skillDefinition.json")).text()
+	)) console.log("ゲーム状態の初期化に成功しました.");
 
+	/**@type {number} */
+	C.gameContextPtr = Module._getGameContextPtr();
 	Keyboard.init();
-	console.log("C processes were initialized.");
+	console.log("C: initialized.");
 });
 
 window.onload = async () => {

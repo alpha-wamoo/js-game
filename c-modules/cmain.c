@@ -14,15 +14,18 @@ GameContext *game = NULL;
  * @returns ゲーム状態の初期化に成功したらtrue
  */
 EMSCRIPTEN_KEEPALIVE
-bool initGameContext(const char* enemiesDefinitionJson, const char* playerDefinitionJson, const char* configJson){
-    printf("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
+bool initGameContext(const char* enemiesDefinitionJson, const char* playerDefinitionJson, const char* configJson, const char* skillDefinitionJson){
+    cdb_call(__func__);
     game = malloc(sizeof(GameContext));
-    game->jsonData = json_loadAll(enemiesDefinitionJson, playerDefinitionJson, configJson);
+    game->jsonData = json_loadAll(enemiesDefinitionJson, playerDefinitionJson, configJson, skillDefinitionJson);
     if(!game || !game->jsonData || !game->jsonData->config || !game->jsonData->config->STAGE) return false;
-    printf("wwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+
     game->enemiesPool = pool_newInstance(game->jsonData->config->STAGE->CHARACTERS_CAPACITY, sizeof(Enemy), 0);
     game->bulletsPool = pool_newInstance(game->jsonData->config->STAGE->BULLETS_CAPACITY, sizeof(Bullet), 0);
     game->keyboard = keyboard_newInstance();
+    if(!game->enemiesPool || !game->bulletsPool || !game->keyboard) return false;
+
+    cdb_exit(__func__);
     return true;
 }
 
@@ -33,7 +36,3 @@ EMSCRIPTEN_KEEPALIVE
 GameContext *getGameContextPtr(){
     return game;
 }
-// Player* createPlayer(){
-//     Player* player;
-//     return player;
-// }

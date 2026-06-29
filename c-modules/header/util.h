@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define FPS 60
+
 /**
  * - 確率pでtrueを返します
  * @param p 0-1

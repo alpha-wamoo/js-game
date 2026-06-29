@@ -6,7 +6,11 @@ Keyboard *keyboard_newInstance(){
 }
 
 EMSCRIPTEN_KEEPALIVE
-void keyboard_update(GameContext *game, uint16_t *keyFrameCnts, int length){
-    game->keyboard->keyFrameCnts = keyFrameCnts;
+void keyboard_update(GameContext *game, uint16_t *keyCnts, int length){
+    game->keyboard->keyCnts = keyCnts;
     game->keyboard->keyNumbers = length;
+}
+
+uint16_t keyboard_pressedCnt(GameContext *game, Key key){
+    return game->keyboard->keyCnts[key];
 }

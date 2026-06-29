@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SRCS="c-modules/cmain.c c-modules/src/*.c"
-FUNCTIONS='["_initGameContext","_getGameContextPtr","_keyboard_update"]'
+FUNCTIONS='["_malloc","_free","_initGameContext","_getGameContextPtr","_keyboard_update"]'
 RUNTIME_METHODS='["cwrap","ccall","HEAPU16"]'
 
 emcc $SRCS \
