@@ -98,7 +98,7 @@ class CFunctionCaller extends CFunctionCallerType{
  * @implements {SingleStructViewBaseType<StructMemberOffsetEnums.Player>}
  */
 class PlayerView extends SingleStructViewBase{
-    /**@enum {number} */
+    /**@type {StructMemberOffsetEnums.Player} */
     _OFFSETS = {
         ID: 0,
         SIZE: 1,
@@ -168,9 +168,8 @@ class BulletsView extends ArrayStructViewBase{
 /**
  * @class
  * @template OffsetsEnum
- * @implements {SingleStructViewBaseType<OffsetsEnum>}
  */
-class SingleStructViewBase extends SingleStructViewBaseType{
+class SingleStructViewBase{
     /**@type {OffsetsEnum} */
     _OFFSETS = {};
 

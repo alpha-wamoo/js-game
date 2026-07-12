@@ -15,7 +15,7 @@ const tt = {
 /**
  * - 単一の構造体に対してviewとして機能します
  */
-export interface SingleStructViewBaseType<OffsetsEnum>{
+export interface SingleStructViewBaseType<OffsetsEnum extends Record<string, number>>{
     private _cmodule: CModule?;
     private _view: DataView?;
     private _ptr: number?;
@@ -32,7 +32,7 @@ export interface SingleStructViewBaseType<OffsetsEnum>{
      */
     public init(cmodule: CModule, view: DataView, ptr: number, offsetsPtr: number): void;
 
-    public getFloat32(propName: keyof typeof OffsetsEnum): number;
+    public getFloat32(propName: keyof OffsetsEnum): number;
 
     public getInt32(propName: keyof OffsetsEnum): number;
 
