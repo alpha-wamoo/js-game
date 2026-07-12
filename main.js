@@ -1,4 +1,4 @@
-/// <reference path="./types/emscripten.d.ts" />
+/// <reference path="./types/C.d.ts" />
 
 import {Game, Stage, Util, JsonData, C, Keyboard} from "./modules.js";
 import createModule from "./cmodules.js";
@@ -20,15 +20,16 @@ createModule().then(async Module => {
 	C.init(Module);
 
 	console.log("C: initializing...");
-	if(C.initGameContext(
+	if(C.caller.initGameContext(
 		await (await fetch("./json/enemiesDefinition.json")).text(),
 		await (await fetch("./json/playerDefinition.json")).text(),
 		await (await fetch("./json/config.json")).text(),
 		await (await fetch("./json/skillDefinition.json")).text()
 	)) console.log("ゲーム状態の初期化に成功しました.");
 
-	/**@type {number} */
-	C.gameContextPtr = Module._getGameContextPtr();
+	const wasmMem = Module.HEAPU8.buffer;
+	C.plView.init(Module, new DataView(wasmMem),C._player_getPtr(C.gameContextPtr), C._player_getMemberOffsetsPtr());
+
 	Keyboard.init();
 	console.log("C: initialized.");
 });

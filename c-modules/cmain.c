@@ -11,6 +11,7 @@ GameContext *game = NULL;
  * @param enemiesDefinitionJson enemiesDefinition.jsonの文字列
  * @param playerDefinitionJson playerDefinition.jsonの文字列
  * @param configJson config.jsonの文字列
+ * @param skillDefinitionJson skillDefinition.jsonの文字列
  * @returns ゲーム状態の初期化に成功したらtrue
  */
 EMSCRIPTEN_KEEPALIVE

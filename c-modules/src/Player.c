@@ -2,6 +2,33 @@
 
 const uint8_t PLAYER_ID = 0xff;
 
+PlayerMemberOffset player_memberOffsetsAry[] = {
+    PLAYER_OFFSET_ID,
+    PLAYER_OFFSET_SIZE,
+    PLAYER_OFFSET_BULLET_DMG,
+    PLAYER_OFFSET_MAX_HP,
+    PLAYER_OFFSET_SPEED,
+    PLAYER_OFFSET_IS_VALID,
+    PLAYER_OFFSET_IS_ENPOWERED,
+    PLAYER_OFFSET_BULLET_SHOOTABLE_CNT,
+    PLAYER_OFFSET_RUNNABLE_CNT,
+    PLAYER_OFFSET_MAGIC_USABLE_CNT,
+    PLAYER_OFFSET_UNBEATABLE_TIME,
+    PLAYER_OFFSET_UNBEATABLE_CNT,
+    PLAYER_OFFSET_HP,
+    PLAYER_OFFSET_POS
+};
+
+EMSCRIPTEN_KEEPALIVE
+int player_getMemberOffsetsPtr(){
+    return (int)player_memberOffsetsAry;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int player_getPtr(GameContext *game){
+    return (int)game->player;
+}
+
 Player *player_newInstance(GameContext *game){
     cdb_call(__func__);
     PlayerDefinition *def = game->jsonData->playerDefinition;
@@ -42,14 +69,6 @@ void player_move(GameContext *game){
     if(keyboard_pressedCnt(game, KEY_D) && pl->pos.x + delta + pl->size/2 < conf->CANV_W) pl->pos.x += delta;
 }
 
-// TODO: add effects
-/**
- * - プレイヤーから弾丸を発射します
- * @param game ゲーム状態
- * @param velX x速度
- * @param velY y速度
- * @returns 発射されたBulletインスタンス
- */
 Bullet *player_shootBullet(GameContext *game, float velX, float velY){
     Config *conf = game->jsonData->config;
     struct ConfigBullet *bulletConf = (game->player->isEnpowered)? conf->BULLET : conf->ENPOWERED_BULLET;
@@ -65,13 +84,6 @@ Bullet *player_shootBullet(GameContext *game, float velX, float velY){
     return bullet;
 }
 
-/**
- * - プレイヤーから複数の弾丸を発射します
- * @param game ゲーム状態
- * @param vel 弾丸の速度配列
- * @param length 弾丸の数
- * @returns 発射されたBulletインスタンス配列. 失敗時にはNULL.
- */
 Bullet **player_shootBullets(GameContext *game, Vector2 vel[], uint8_t length){
     cdb_call(__func__);
     Bullet **bullets = malloc(sizeof(Bullet*));
@@ -96,15 +108,13 @@ Bullet **player_shootBullets(GameContext *game, Vector2 vel[], uint8_t length){
     return bullets;
 }
 
-// TODO: add effects
-void player_applyDamage(GameContext *game, uint8_t hp){
-    game->player->hp -= hp;
+void player_applyDamage(GameContext *game, uint8_t decrements){
+    game->player->hp -= decrements;
     if(game->player->hp <= 0) player_kill(game);
 }
 
-// TODO: add effects
-void player_applyHeal(GameContext *game, uint8_t hp){
+void player_applyHeal(GameContext *game, uint8_t increments){
     Player *pl = game->player;
-    pl->hp += hp;
+    pl->hp += increments;
     if(pl->hp > pl->maxHp) pl->hp = pl->maxHp;
 }

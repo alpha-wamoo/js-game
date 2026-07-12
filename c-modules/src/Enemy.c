@@ -1,5 +1,39 @@
 #include "../header/Enemy.h"
 
+EnemyMemberOffset enemy_memberOffsetsAry[] = {
+    ENEMY_OFFSET_ID,
+    ENEMY_OFFSET_SIZE,
+    ENEMY_OFFSET_MAX_HP,
+    ENEMY_OFFSET_HIT_DMG,
+    ENEMY_OFFSET_BULLET_DMG,
+    ENEMY_OFFSET_REWARD_SCORE,
+    ENEMY_OFFSET_IS_VALID,
+    ENEMY_OFFSET_IS_ALPHA,
+    ENEMY_OFFSET_POS,
+    ENEMY_OFFSET_SPEED,
+    ENEMY_OFFSET_BULLET_SHOOTABLE_CNT,
+    ENEMY_OFFSET_HP,
+    ENEMY_OFFSET_RANDOMS,
+    ENEMY_OFFSET_IMG_SRC,
+    ENEMY_OFFSET_MOTION_KEY,
+    ENEMY_OFFSET_TYPE_ID
+};
+
+EMSCRIPTEN_KEEPALIVE
+int enemy_getMemberOffsetsPtr(){
+    return (int)enemy_memberOffsetsAry;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int enemy_getPtr(GameContext *game){
+    return (int)game->enemies;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int enemy_getStructSize(){
+    return sizeof(Enemy);
+}
+
 EnemyDefinition *_getEnemyDefinition(EnemyTypeId typeId, EnemiesDefinition *enemiesDefinition){
     EnemyDefinition *enemyDef;
     if(typeId == TYPE_BASIC) enemyDef = enemiesDefinition->basic;

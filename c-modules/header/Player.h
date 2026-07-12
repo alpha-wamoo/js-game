@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <emscripten/emscripten.h>
 #include "Vector2.h"
 #include "GameContext.h"
 #include "Keyboard.h"
@@ -19,7 +20,7 @@ typedef struct Player{
     Vector2 pos; // offset 32-39
 } Player;
 
-typedef const enum PlayerMemberOffset{
+typedef enum PlayerMemberOffset{
     PLAYER_OFFSET_ID = offsetof(Player, id),
     PLAYER_OFFSET_SIZE = offsetof(Player, size),
     PLAYER_OFFSET_BULLET_DMG = offsetof(Player, bulletDmg),
@@ -36,20 +37,77 @@ typedef const enum PlayerMemberOffset{
     PLAYER_OFFSET_POS = offsetof(Player, pos)
 } PlayerMemberOffset;
 
+/**
+ * - Player構造体のメンバ変数のオフセットを格納した配列の先頭ポインタ
+ */
+extern PlayerMemberOffset player_memberOffsetsAry[];
+
+/**
+ * - Player構造体のidの値(0xff = プレイヤー)
+ */
 extern const uint8_t PLAYER_ID;
 
+/**
+ * - Player構造体のメンバ変数のオフセットを取得するための先頭ポインタを返します
+ * @returns ポインタ
+ */
+int player_getMemberOffsetsPtr();
+
+int player_getPtr(GameContext *game);
+
+/**
+ * - Playerインスタンスを作ります
+ * @param game ゲーム状態
+ * @returns Playerインスタンス
+ */
 Player *player_newInstance(GameContext *game);
 
+/**
+ * - Playerインスタンスを解放します
+ * @param game ゲーム状態
+ */
 void player_delete(GameContext *game);
 
+/**
+ * - Playerを倒します
+ * @param game ゲーム状態
+ */
 void player_kill(GameContext *game);
 
+/**
+ * - キー入力に基づいてPlayerを移動させます
+ * @param game ゲーム状態
+ */
 void player_move(GameContext *game);
 
+/**
+ * - Playerから弾丸を発射します
+ * @param game ゲーム状態
+ * @param velX 弾丸のX方向の速度
+ * @param velY 弾丸のy方向の速度
+ * @returns 発射されたBulletインスタンス. 失敗時にはNULL.
+ */
 Bullet *player_shootBullet(GameContext *game, float velX, float velY);
 
+/**
+ * - Playerから複数の弾丸を発射します
+ * @param game ゲーム状態
+ * @param vel 弾丸の速度配列
+ * @param length 弾丸の数
+ * @returns 発射されたBulletインスタンスの配列. 失敗時にはNULL.
+ */
 Bullet **player_shootBullets(GameContext *game, Vector2 vel[], uint8_t length);
 
-void player_applyDamage(GameContext *game, uint8_t hp);
+/**
+ * - Playerにダメージを与えます
+ * @param game ゲーム状態
+ * @param decrements 減少量
+ */
+void player_applyDamage(GameContext *game, uint8_t decrements);
 
-void player_applyHeal(GameContext *game, uint8_t hp);
+/**
+ * - Playerを回復します
+ * @param game ゲーム状態
+ * @param increments 増加量
+ */
+void player_applyHeal(GameContext *game, uint8_t increments);
