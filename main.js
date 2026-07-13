@@ -20,7 +20,7 @@ createModule().then(async Module => {
 	C.init(Module);
 
 	console.log("C: initializing...");
-	if(C.caller.initGameContext(
+	if(C._caller.initGameContext(
 		await (await fetch("./json/enemiesDefinition.json")).text(),
 		await (await fetch("./json/playerDefinition.json")).text(),
 		await (await fetch("./json/config.json")).text(),

@@ -42,3 +42,10 @@ void keyboard_update(GameContext *game, uint16_t *keyFrameCnts, int length);
  * @param key キー
  */
 uint16_t keyboard_pressedCnt(GameContext *game, Key key);
+
+/**
+ * - キーが押されているかを取得します
+ * @param game ゲーム状態
+ * @param key キー
+ */
+bool keyboard_isPressed(GameContext *game, Key key);

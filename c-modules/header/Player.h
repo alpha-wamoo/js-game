@@ -75,6 +75,12 @@ void player_delete(GameContext *game);
 void player_kill(GameContext *game);
 
 /**
+ * - キー入力に基づいてPlayerを操作します
+ * @param game ゲーム状態
+ */
+void player_inputKeyboard(GameContext *game);
+
+/**
  * - キー入力に基づいてPlayerを移動させます
  * @param game ゲーム状態
  */

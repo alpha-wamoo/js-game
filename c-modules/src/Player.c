@@ -19,16 +19,6 @@ PlayerMemberOffset player_memberOffsetsAry[] = {
     PLAYER_OFFSET_POS
 };
 
-EMSCRIPTEN_KEEPALIVE
-int player_getMemberOffsetsPtr(){
-    return (int)player_memberOffsetsAry;
-}
-
-EMSCRIPTEN_KEEPALIVE
-int player_getPtr(GameContext *game){
-    return (int)game->player;
-}
-
 Player *player_newInstance(GameContext *game){
     cdb_call(__func__);
     PlayerDefinition *def = game->jsonData->playerDefinition;
@@ -57,6 +47,11 @@ void player_delete(GameContext *game){
 
 void player_kill(GameContext *game){
     game->player->isValid = false;
+}
+
+void player_inputKeyboard(GameContext *game){
+    Player *pl = game->player;
+    if(keyboard_isPressed(game, KEY_W))
 }
 
 void player_move(GameContext *game){
@@ -92,18 +87,7 @@ Bullet **player_shootBullets(GameContext *game, Vector2 vel[], uint8_t length){
     Player *pl = game->player;
     if(!conf || !bulletConf || !bullets || !pl) return NULL;
 
-    for(uint8_t i = 0; i < length; i++){
-        Bullet *bullet = (Bullet*)pool_get(game->bulletsPool);
-        if(!bullet) return NULL;
-        bullet->isValid = true;
-        bullet->size = bulletConf->SIZE;
-        bullet->pos = pl->pos;
-        bullet->vel = vel[i];
-        bullet->ownerId = pl->id;
-        bullet->dmg = pl->bulletDmg;
-        bullet->color = bulletConf->RGB;
-        bullets[i] = bullet;
-    }
+    for(uint8_t i = 0; i < length; i++) bullets[i] = bullet_spawnByPlayer(pl, bulletConf, vel[i]);
     cdb_exit(__func__);
     return bullets;
 }
@@ -117,4 +101,15 @@ void player_applyHeal(GameContext *game, uint8_t increments){
     Player *pl = game->player;
     pl->hp += increments;
     if(pl->hp > pl->maxHp) pl->hp = pl->maxHp;
+}
+
+
+EMSCRIPTEN_KEEPALIVE
+int player_getMemberOffsetsPtr(){
+    return (int)player_memberOffsetsAry;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int player_getPtr(GameContext *game){
+    return (int)game->player;
 }

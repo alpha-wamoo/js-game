@@ -31,6 +31,15 @@ typedef enum BulletMemberOffset{
 extern BulletMemberOffset bullet_memberOffsetsAry[];
 
 /**
+ * - Playerから新たなBulletを発射します
+ * @param pl - プレイヤーインスタンス
+ * @param bulletConf - ConfigBulletインスタンス
+ * @param vel - 弾丸の初速度ベクトル構造体
+ * @returns プレイヤーから発射された弾丸インスタンス
+ */
+Bullet *bullet_spawnByPlayer(Player *pl, struct ConfigBullet *bulletConf, Vector2 vel);
+
+/**
  * - Bullet構造体のメンバ変数のオフセットを取得するための先頭ポインタを返します
  * @returns ポインタ
  */

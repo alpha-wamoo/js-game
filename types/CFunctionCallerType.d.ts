@@ -2,11 +2,11 @@ import type {CModule} from "./CModule";
 
 export namespace CFunctionCallerType{
     export const C_FUNCTIONS: {
-        [fnName: string]: [
+        [fnName: string]: {
             fnName: string,
             retType: string,
             argTypes: string[]
-        ];
+        };
     };
 }
 
