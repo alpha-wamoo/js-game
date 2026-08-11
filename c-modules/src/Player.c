@@ -19,6 +19,20 @@ PlayerMemberOffset player_memberOffsetsAry[] = {
     PLAYER_OFFSET_POS
 };
 
+/**
+ * - キー入力に基づいてPlayerを移動させます
+ * @param game ゲーム状態
+ */
+void _moveByInput(GameContext *game){
+    Player *pl = game->player;
+    Config *conf = game->jsonData->config;
+    float delta = pl->speed / FPS;
+    if(keyboard_pressedCnt(game, KEY_W) && pl->pos.y - delta - pl->size/2 > 0) pl->pos.y -= delta;
+    if(keyboard_pressedCnt(game, KEY_A) && pl->pos.x - delta - pl->size/2 > 0) pl->pos.x -= delta;
+    if(keyboard_pressedCnt(game, KEY_S) && pl->pos.y + delta + pl->size/2 < conf->CANV_H) pl->pos.y += delta;
+    if(keyboard_pressedCnt(game, KEY_D) && pl->pos.x + delta + pl->size/2 < conf->CANV_W) pl->pos.x += delta;
+}
+
 Player *player_newInstance(GameContext *game){
     cdb_call(__func__);
     PlayerDefinition *def = game->jsonData->playerDefinition;
@@ -51,17 +65,8 @@ void player_kill(GameContext *game){
 
 void player_inputKeyboard(GameContext *game){
     Player *pl = game->player;
-    if(keyboard_isPressed(game, KEY_W))
-}
-
-void player_move(GameContext *game){
-    Player *pl = game->player;
-    Config *conf = game->jsonData->config;
-    float delta = pl->speed / FPS;
-    if(keyboard_pressedCnt(game, KEY_W) && pl->pos.y - delta - pl->size/2 > 0) pl->pos.y -= delta;
-    if(keyboard_pressedCnt(game, KEY_A) && pl->pos.x - delta - pl->size/2 > 0) pl->pos.x -= delta;
-    if(keyboard_pressedCnt(game, KEY_S) && pl->pos.y + delta + pl->size/2 < conf->CANV_H) pl->pos.y += delta;
-    if(keyboard_pressedCnt(game, KEY_D) && pl->pos.x + delta + pl->size/2 < conf->CANV_W) pl->pos.x += delta;
+    _moveByInput(game);
+    if(keyboard_pressedCnt(game, KEY_SPACE)) player_shootBullet(game, 0, )
 }
 
 Bullet *player_shootBullet(GameContext *game, float velX, float velY){
@@ -86,6 +91,12 @@ Bullet **player_shootBullets(GameContext *game, Vector2 vel[], uint8_t length){
     struct ConfigBullet *bulletConf = (game->player->isEnpowered)? conf->BULLET : conf->ENPOWERED_BULLET;
     Player *pl = game->player;
     if(!conf || !bulletConf || !bullets || !pl) return NULL;
+    float fBulletSpeed = (float)bulletConf->SPEED;
+    Vector2 vel[3] = {
+        {-fBulletSpeed, 0},
+        {fBulletSpeed, 0},
+        {0, -fBulletSpeed}
+    }
 
     for(uint8_t i = 0; i < length; i++) bullets[i] = bullet_spawnByPlayer(pl, bulletConf, vel[i]);
     cdb_exit(__func__);

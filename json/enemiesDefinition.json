@@ -1,43 +1,46 @@
-{
-    "basic":{
-        "imgSrc": "./images/character/frenchbulldog.png",
-        "size": 55,
-        "speed": 3.5,
-        "max_hp": 35,
-        "hit_dmg": 20,
-        "rewardScore": 15,
-        "motionKey": "simply_down",
-        "existAlpha": true
+[
+    {
+        "TYPE": "basic",
+        "IMG_SRC": "./images/character/frenchbulldog.png",
+        "SIZE": 55,
+        "SPEED": 3.5,
+        "MAX_HP": 35,
+        "HIT_DMG": 20,
+        "REWARD_SCORE": 15,
+        "MOTION_KEY": "SIMPLY_DOWN",
+        "EXIST_ALPHA": true
     },
-    "tough":{
-        "imgSrc": "./images/character/schnauzer.png",
-        "size": 80,
-        "speed": 1.75,
-        "max_hp": 100,
-        "hit_dmg": 25,
-        "rewardScore": 25,
-        "motionKey": "simply_down",
-        "existAlpha": true
+    {
+        "TYPE": "tough",
+        "IMG_SRC": "./images/character/schnauzer.png",
+        "SIZE": 80,
+        "SPEED": 1.75,
+        "MAX_HP": 100,
+        "HIT_DMG": 25,
+        "REWARD_SCORE": 25,
+        "MOTION_KEY": "SIMPLY_DOWN",
+        "EXIST_ALPHA": true
     },
-    "small": {
-        "imgSrc": "./images/character/chihuahua.png",
-        "size": 35,
-        "speed": 7,
-        "max_hp": 20,
-        "hit_dmg": 10,
-        "rewardScore": 8,
-        "motionKey": "sin",
-        "existAlpha": true
+    {
+        "TYPE": "small",
+        "IMG_SRC": "./images/character/chihuahua.png",
+        "SIZE": 35,
+        "SPEED": 7,
+        "MAX_HP": 20,
+        "HIT_DMG": 10,
+        "REWARD_SCORE": 8,
+        "MOTION_KEY": "SIN",
+        "EXIST_ALPHA": true
     },
-    "tricky": {
-        "imgSrc": "./images/character/shihtzu.png",
-        "size": 65,
-        "speed": 3,
-        "max_hp": 35,
-        "hit_dmg": 15,
-        "rewardScore": 15,
-        "motionKey": "cyclic",
-        "existAlpha": true
+    {
+        "TYPE": "tricky",
+        "IMG_SRC": "./images/character/shihtzu.png",
+        "SIZE": 65,
+        "SPEED": 3,
+        "MAX_HP": 35,
+        "HIT_DMG": 15,
+        "REWARD_SCORE": 15,
+        "MOTION_KEY": "CYCLIC",
+        "EXIST_ALPHA": true
     }
-
-}
+]

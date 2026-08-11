@@ -38,8 +38,8 @@
         }
     },
     "STAGE": {
-        "CHARACTERS_CAPACITY": 100,
-        "BULLETS_CAPACITY": 100,
+        "CHARACTERS_CAPACITY": 128,
+        "BULLETS_CAPACITY": 128,
         "CELL_SIZE": 100
     }
 }

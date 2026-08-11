@@ -81,12 +81,6 @@ void player_kill(GameContext *game);
 void player_inputKeyboard(GameContext *game);
 
 /**
- * - キー入力に基づいてPlayerを移動させます
- * @param game ゲーム状態
- */
-void player_move(GameContext *game);
-
-/**
  * - Playerから弾丸を発射します
  * @param game ゲーム状態
  * @param velX 弾丸のX方向の速度

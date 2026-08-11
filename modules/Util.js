@@ -17,6 +17,24 @@ export default {
         return new Promise((resolve) => setTimeout(resolve, ms));
     },
 
+    /**
+     * - 指定範囲内で乱数を生成します
+     * @param {number} min
+     * @param {number} max
+     */
+    randInRange(min, max){
+        return Math.random() * (max - min) + min;
+    },
+
+    /**
+     * - ある確率でtrueを返します
+     * @param {number} p 確率
+     * @returns {boolean}
+     */
+    chance(p){
+        return Math.random() < p;
+    }
+
     GameObj: {
         /**
          * @param {"x" | "y"} axis 

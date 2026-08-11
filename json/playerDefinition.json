@@ -1,12 +1,12 @@
 {
-    "size": 70,
-    "speed": 300,
-    "max_hp": 200,
-    "imgSrc": "./images/character/dalmatian.png",
-    "beginPos": {
+    "SIZE": 70,
+    "SPEED": 300,
+    "MAX_HP": 200,
+    "IMG_SRC": "./images/character/dalmatian.png",
+    "POS_PRESET": {
         "x": 600,
         "y": 750
     },
-    "bltDmg": 25,
-    "unbeatableTime": 1000
+    "BULLET_DMG": 25,
+    "UNBEATABLE_TIME": 1000
 }

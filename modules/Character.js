@@ -11,113 +11,39 @@ import {Keyboard, Stage, FPS, Bullet, JsonData, SoundManager, Drawer, Util, Game
  * @class
  */
 export default class Character{
-    /**@type {HTMLImageElement} */
-    img;
-    /**@type {Position} */
-    pos;
-    /**@type {number} */
-    speed;
-    /**@type {number} */
-    size;
-    /**@type {number} */
-    id;
-    /**@type {CharacterTypeId} */
-    typeId;
-    /**@type {number} */
-    max_hp;
-    /**@type {number} */
-    hp;
-    /**@type {number} */
-    hitDmg;
-    /**@type {number} */
-    bulletDmg;
-    /**@type {number} */
-    rewardScore;
-    frame = 0;
-    bulletShootableCnt = 0;
-    /**@type {Position} */
-    posBegin;
-    /**@type {number[6]} */
-    randoms = [];
-    /**@type {number} */
-    runnableCnt = JsonData.skillDefinition.RUN_FASTER.INTERVAL;
-    /**@type {number} */
-    magicUsableCnt = JsonData.skillDefinition.MAGIC.INTERVAL;
-    isEnpowered = false;
-    unbeatableTime = 0 * 1000;
-    unbeatableCnt = 0;
-    isAlpha = false;
-    /**@type {(chr: Character) => Position} */
-    motion = (pos, speed, frame) => {};
-    /**@enum {(chr: Character) => Position} */
-    static motionPatterns = {
-        "simply_down": ({pos, speed}) => ({ x: pos.x, y: pos.y + speed }),
-        "sin": ({pos, speed, randoms, frame, size}) => {
-            const sec = frame / FPS;
-            const x = pos.x + sec * speed * randoms[0]**2;
-            const yAmplifier = JsonData.config.CANV_H * randoms[1];
-            return { x, y: yAmplifier * (1 + Math.sin(sec * speed * randoms[2] - 3/4 * Math.PI)) / 2 + size/2 };
-        },
-        "h-parabola": ({pos, speed, frame, randoms}) => {
-            const sec = frame / FPS;
-            const randOrigin = {
-                x: randoms[0] * JsonData.config.CANV_W,
-                y: randoms[1] * JsonData.config.CANV_H
-            };
-            const y = pos.y + sec * speed * randoms[2];
-            return {
-                x: - (randoms[3]**2) * (y - randOrigin.y)**2 + randOrigin.x,
-                y
-            };
-        },
-        "cyclic": ({frame, speed, posBegin, randoms}) => {
-            const sec = frame / FPS;
-            const posDiff = {
-                x: (Math.min(JsonData.config.CANV_W - posBegin.x, posBegin.x) * randoms[0] / 2) * Math.cos(sec * speed * randoms[2] * Math.PI),
-                y: (Math.min(JsonData.config.CANV_H - posBegin.y, posBegin.y) * randoms[1] / 2) * Math.sin(sec * speed * randoms[3] * Math.PI)
-            };
-            return {
-                x: posBegin.x + posDiff.x,
-                y: posBegin.y + posDiff.y
-            };
-        }
-    };
-    /**@enum {(size: number) => Position} */
-    static spawnPosGetters = {
-        "simply_down": size => {
-            const marginX = 50;
-            return {
-                x: Math.floor(Math.random() * (JsonData.config.CANV_W - 2 * marginX) + marginX),
-                y: 10
-            };
-        },
-        "sin": size => {
-            return {
-                x: Math.rangedRandom(size / 2, JsonData.config.CANV_W / 8),
-                y: size/2
-            };
-        },
-        "h-parabola": size => {
-            return {
-                x: size / 2,
-                y: Math.rangedRandom(size / 2, JsonData.config.CANV_H / 2)
-            };
-        },
-        "cyclic": size => {
-            const MARGIN = 30;
-            return {
-                x: Math.rangedRandom(size/2 + MARGIN, JsonData.config.CANV_W - size/2 - MARGIN),
-                y: Math.rangedRandom(size/2 + MARGIN, JsonData.config.CANV_H - size/2 - MARGIN)
-            };
-        }
-    }
 
     /**
      * @constructor
-     * @param {number} id
+     * @param {number} length - Enemyの数
      */
-    constructor(id){
-        this.id = id;
+    constructor(length){
+        /**@type {HTMLImageElement[]} */
+        this.img = new Array(length);
+        /**@type {Float32Array} */
+        this.speed = new Float32Array(length);
+        /**@type {string[]} */
+        this.typeId = new Array(length);
+        /**@type {Uint8Array} */
+        this.hitDmg = new Uint8Array(length);
+        /**@type {Uint8Array} */
+        this.bulletDmg = new Uint8Array(length);
+        /**@type {Uint8Array} */
+        this.rewardScore = new Uint8Array(length);
+        this.bulletShootableCnt = 0;
+        /**@type {Position} */
+        this.posBegin;
+        /**@type {number[6]} */
+        this.randoms = [];
+        /**@type {number} */
+        this.runnableCnt = JsonData.skillDefinition.RUN_FASTER.INTERVAL;
+        /**@type {number} */
+        this.magicUsableCnt = JsonData.skillDefinition.MAGIC.INTERVAL;
+        this.isEnpowered = false;
+        this.unbeatableTime = 0 * 1000;
+        this.unbeatableCnt = 0;
+        this.isAlpha = false;
+        /**@type {(chr: Character) => Position} */
+        this.motion = (pos, speed, frame) => {};
     }
 
     /**
@@ -162,17 +88,6 @@ export default class Character{
     setImage(src){
         this.img = new Image();
         this.img.src = src;
-        return this;
-    }
-
-    /**
-     * 被ダメージ時の無敵時間をセットします.
-     * @note 無敵時間を開始する関数ではない.
-     * @param {number} time - ms
-     * @returns {Character}
-     */
-    setUnbeatableTime(time){
-        this.unbeatableTime = time;
         return this;
     }
 
@@ -237,42 +152,6 @@ export default class Character{
             x: this.pos.x - this.size / 2,
             y: this.pos.y - this.size / 2
         };
-    }
-
-    /**
-     * プレイヤー用の移動関数です
-     * 変位の座標を返します
-     * @param {Stage} stage ステージ
-     * @param {Direction} direction 方向
-     * @returns {Position} 移動した変位
-     */
-    move(stage, dire){
-        const delta = this.speed / FPS;
-        const deltaPos = {x: 0, y: 0};
-        if(dire === "right" && stage.isInsidePos({ x: this.pos.x + delta + this.size/2 })){
-            this.pos.x += delta;
-            deltaPos.x += delta;
-        }
-        if(dire === "left" && stage.isInsidePos({ x: this.pos.x - delta - this.size/2 })){
-            this.pos.x -= delta;
-            deltaPos.x -= delta;
-        }
-        if(dire === "down" && stage.isInsidePos({ y: this.pos.y + delta + this.size/2 })){
-            this.pos.y += delta;
-            deltaPos.y += delta;
-        }
-        if(dire === "up" && stage.isInsidePos({ y: this.pos.y - delta - this.size/2 })){
-            this.pos.y -= delta;
-            deltaPos.y -= delta;
-        }
-        return deltaPos;
-    }
-
-    /**
-     * 敵用の移動関数です
-     */
-    enemyMove(){
-        this.pos = this.motion(this);
     }
 
     /**
@@ -348,22 +227,6 @@ export default class Character{
     decrementUnbeatableCnt(deltaMs){
         if(this.unbeatableCnt <= 0) return;
         this.unbeatableCnt = Math.max(0, this.unbeatableCnt - deltaMs);
-    }
-
-    /**
-     * 回復を与えます
-     * @param {number} hp 回復量
-     * @param {Object} [options]
-     * @param {boolean} [options.ignoreMax] 最大hpを無視します. default: false.
-     * @param {boolean} [options.allowSound] 同時に音"heal"を再生します. default: false.
-     * @param {boolean} [options.allowAnimation] 同時にアニメーション"heart"を描画します. default: false.
-     */
-    applyHeal(hp, options = {}){
-        const {ignoreMax=false, allowSound=false, allowAnimation=false} = options;
-        this.hp += hp;
-        if(!ignoreMax && this.hp > this.max_hp) this.hp = this.max_hp;
-        if(allowSound) SoundManager.play("heal", 1.75);
-        if(allowAnimation) Drawer.enqueueAnimation("heart", this.pos, { scale: 1.25, speed: 0.5 });
     }
 
     /**
@@ -488,21 +351,5 @@ export default class Character{
             }
             this.magicUsableCnt += CNT_UPDATE_INTERVAL;
         }, CNT_UPDATE_INTERVAL);
-    }
-
-    /**
-     * α化します
-     * @note エネミー用です.
-     */
-    toAlpha(){
-        const {SPEED_RATE, DMG_RATE, HP_RATE, SIZE_RATE, REWARD_RATE} = JsonData.config.ENEMY.ALPHA;
-
-        this.isAlpha = true;
-        this.speed *= SPEED_RATE;
-        this.hit_dmg *= DMG_RATE;
-        this.rewardScore *= REWARD_RATE;
-        this.size *= SIZE_RATE;
-        this.max_hp *= HP_RATE;
-        this.hp *= HP_RATE;;
     }
 }

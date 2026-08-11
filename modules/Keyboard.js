@@ -6,42 +6,45 @@ import {C} from "../modules.js";
  * - キーボード入力を管理します
  */
 export default class Keyboard{
+    static KeyFlagMasks = Object.freeze({
+        "w": 1 << 0,
+        "a": 1 << 1,
+        "s": 1 << 2,
+        "d": 1 << 3,
+        "shift": 1 << 4,
+        " ": 1 << 5,
+        "enter": 1 << 6
+    });
     /**
      * - 値はinitで自動設定
      * @private @static @type {{[key: string]: number}}
      */
     static _KEY_IDX = {
-        "w": -1,
-        "a": -1,
-        "s": -1,
-        "d": -1,
-        "shift": -1,
-        " ": -1,
-        "enter": -1
+        "w": 0,
+        "a": 1,
+        "s": 2,
+        "d": 3,
+        "shift": 4,
+        " ": 5,
+        "enter": 6
     };
-    // static _KEY_IDX = {
-    //     "w": 0,
-    //     "a": 1,
-    //     "s": 2,
-    //     "d": 3,
-    //     "shift": 4,
-    //     " ": 5,
-    //     "enter": 6
-    // };
     /**@public @static @type {number} */
-    static KEY_NUMBERS = Object.keys(Keyboard._KEY_IDX).length;
+    static N_KEYS = Object.keys(Keyboard.KeyFlagMasks).length;
     /**@private @static @type {Uint16Array<ArrayBuffer>} */
-    static _keyPressedCnts = new Uint16Array(Keyboard.KEY_NUMBERS);
+    static _keyPressedCnts = new Uint16Array(Keyboard.N_KEYS);
     /**@private @static @type {number} */
     static _keyPressedCntsPtr = null;
+    /**@public @static @type {number} */
+    static keyFlagBit = 0b0;
 
     /**
      * - 初期化します
      * @public @static @method
      */
     static init(){
-        for(let i = 0, keys = Object.keys(Keyboard._KEY_IDX); i < Keyboard.KEY_NUMBERS; i++) Keyboard._KEY_IDX[keys[i]] = i;
-        Keyboard._keyPressedCntsPtr = C.module._malloc(Keyboard.KEY_NUMBERS * 2);
+        const keys = Object.keys(Keyboard._KEY_IDX);
+        for(let i = 0; i < Keyboard.N_KEYS; i++) Keyboard._KEY_IDX[keys[i]] = i;
+        Keyboard._keyPressedCntsPtr = C.module._malloc(Keyboard.N_KEYS * 2);
     }
 
     /**
@@ -51,7 +54,7 @@ export default class Keyboard{
     static updateC(){
         // const gameContextPtr = cmodule._getGameContextPtr();
         C.module.HEAPU16.set(Keyboard._keyPressedCnts, Keyboard._keyPressedCntsPtr >> 1);
-        C.keyboard_update(C.gameContextPtr, Keyboard._keyPressedCntsPtr, Keyboard.KEY_NUMBERS);
+        C.keyboard_update(C.gameContextPtr, Keyboard._keyPressedCntsPtr, Keyboard.N_KEYS);
     }
 
     /**
@@ -67,12 +70,11 @@ export default class Keyboard{
     /**
      * - キーが押されているかを判定します
      * @public @static @method
-     * @param {string} key 判定したいキー
+     * @param {keyof typeof Keyboard.KeyFlagMasks} key 判定したいキー(小文字)
      * @returns {boolean} 推されていればtrue.
      */
     static isPressed(key){
-        const cnt = Keyboard._keyPressedCnts[Keyboard._KEY_IDX[key]] ?? 0;
-        return cnt >= 1;
+        return Keyboard.keyFlagBit & Keyboard.KeyFlagMasks[key] !== 0;
     }
 
     /**
@@ -82,7 +84,9 @@ export default class Keyboard{
      * @returns {boolean} 全て押されていればtrue.
      */
     static isAllPressed(...keys){
-        return keys.every(key => Keyboard.isPressed(key));
+        let keysMask = 0b0;
+        for(const key of keys) keysMask |= Keyboard.KeyFlagMasks[key];
+        return (Keyboard.keyFlagBit & keysMask) === keysMask;
     }
 
     /**
@@ -91,8 +95,10 @@ export default class Keyboard{
      * @param {KeyboardEvent} ev 
      */
     static keydown(ev){
+        const keyStr = ev.key.toLowerCase();
         ev.preventDefault();
-        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[ev.key.toLowerCase()]] += 1;
+        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[keyStr]] += 1;
+        Keyboard.keyFlagBit |= Keyboard.KeyFlagMasks[keyStr];
         // console.log(`down: ${key}`);
     }
 
@@ -102,8 +108,10 @@ export default class Keyboard{
      * @param {KeyboardEvent} ev
      */
     static keyup(ev){
+        const keyStr = ev.key.toLowerCase();
         ev.preventDefault();
-        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[ev.key.toLowerCase()]] = 0;
+        Keyboard._keyPressedCnts[Keyboard._KEY_IDX[keyStr]] = 0;
+        Keyboard.keyFlagBit &= ~Keyboard.KeyFlagMasks[keyStr];
         // console.log(`up: ${key}`);
     }
 
@@ -112,6 +120,7 @@ export default class Keyboard{
      * @public @static @method
      */
     static clear(){
-        for(let i = 0; i < Keyboard.KEY_NUMBERS; i++) Keyboard._keyPressedCnts[i] = 0;
+        for(let i = 0; i < Keyboard.N_KEYS; i++) Keyboard._keyPressedCnts[i] = 0;
+        Keyboard.keyFlagBit = 0b0;
     }
 }

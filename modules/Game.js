@@ -1,5 +1,5 @@
 /**@module Game */
-import {Keyboard, Stage, Character, FPS, Drawer, SoundManager, Util, JsonData, WorkManager, C} from "../modules.js";
+import {Keyboard, Stage, Player, EnemyPool, FPS, Drawer, SoundManager, Util, JsonData, Enum} from "../modules.js";
 import {default as constructDTO} from "./worker/HittingDetector.js";
 
 /**
@@ -14,6 +14,8 @@ import {default as constructDTO} from "./worker/HittingDetector.js";
  * @prop {HTMLCanvasElement} ui
  */
 
+const {DirectionMask} = Enum;
+
 /**
  * - ゲームの初期化、開始、ゲームループを行います.
  * - Stageインスタンスを持ちます.
@@ -26,7 +28,7 @@ export default class Game{
     _canvs = {};
     /**@private @type {Stage} */
     _stage;
-    /**@private @type {Character} */
+    /**@private @type {Player} */
     _pl;
     /**@private @type {number} */
     _score = 0;
@@ -98,24 +100,25 @@ export default class Game{
 
     /**
      * - 毎フレーム実行されます.
-     * @public
-     * @method
+     * @public @method
      */
     mainLoop(){
+        const {_pl, _stage} = this;
+        const {ALLOW_SOUND, ALLOW_ANIMATION} = Enum.PlayerHealOptionMask;
         Drawer.clear("object");
         Drawer.clear("ui");
 
-        this._pl = this._stage._validChrs.find(chr => chr.typeId === "player");
+        _pl = _stage._validChrs.find(chr => chr.typeId === "player");
         const {NATURAL_HEAL, BULLET} = JsonData.config;
-        if(this.isInterval(0.5 * 1000)) this._stage.spawnRandEnemy();
-        if(this.isInterval(1000)) this.updateScore(s => s + 1, false);
-        if(this.isInterval(NATURAL_HEAL.INTERVAL)) this._pl?.applyHeal(NATURAL_HEAL.HP, { allowSound: true, allowAnimation: true });
+        if(this.isInterval(0.5 * 1000)) _stage.spawnRandEnemy();
+        if(this.isInterval(1000)) updateScore(s => s + 1, false);
+        if(this.isInterval(NATURAL_HEAL.INTERVAL)) _pl?.applyHeal(NATURAL_HEAL.HP, ALLOW_SOUND | ALLOW_ANIMATION);
 
         this.updateFrame();
         this.drawFrame();
 
         this._frame++;
-        if(this._pl) requestAnimationFrame(this._boundMainLoop);
+        if(_pl) requestAnimationFrame(this._boundMainLoop);
         else this.finish();
     }
 
@@ -125,11 +128,9 @@ export default class Game{
      * @method
      */
     updateFrame(){
-        const stage = this._stage;
-        const pl = this._pl;
-        const enemies = stage.getValidChrs(chr => chr !== pl);
-        const bullets = stage.getValidBlts();
-        const {RUN} = JsonData.config;
+        const {_pl, _stage} = this;
+        const enemies = _stage.getValidChrs(chr => chr !== _pl);
+        const bullets = _stage.getValidBlts();
 
         // score
         // TODO: score
@@ -137,28 +138,34 @@ export default class Game{
         // keyboard monitor
         Keyboard.updateC();
         // TODO: ここをCにする
-        if(Keyboard.isPressed("d")) pl.move(stage, "right");
-        if(Keyboard.isPressed("a")) pl.move(stage, "left");
-        if(Keyboard.isPressed("w")) pl.move(stage, "up");
-        if(Keyboard.isPressed("s")) pl.move(stage, "down");
-        if(Keyboard.isPressed(" ")) pl.shootBullet(stage);
-        if(Keyboard.isAllPressed("shift", "enter")) pl.useMagic(stage, this);
-        else if(Keyboard.isPressed("enter")) pl.runFaster();
+        // if(Keyboard.isPressed("d")) _pl.move(_stage, Direction.RIGHT);
+        // if(Keyboard.isPressed("a")) _pl.move(_stage, Direction.LEFT);
+        // if(Keyboard.isPressed("w")) _pl.move(_stage, Direction.UP);
+        // if(Keyboard.isPressed("s")) _pl.move(_stage, Direction.DOWN);
+        let directionBits = 0b0;
+        if(Keyboard.isPressed("d")) directionBits |= DirectionMask.RIGHT;
+        if(Keyboard.isPressed("a")) directionBits |= DirectionMask.LEFT;
+        if(Keyboard.isPressed("w")) directionBits |= DirectionMask.UP;
+        if(Keyboard.isPressed("s")) directionBits |= DirectionMask.DOWN;
+        _pl.move(_stage, directionBits);
+        if(Keyboard.isPressed(" ")) _pl.shootBullet(_stage);
+        if(Keyboard.isAllPressed("shift", "enter")) _pl.useMagic(_stage, this);
+        else if(Keyboard.isPressed("enter")) _pl.runFaster();
 
         // enemies update
         for(const enemy of enemies){
             enemy.enemyMove();
             // TODO: fieldGridを座標から更新
-            stage.fieldChrGrid.register(enemy);
-            if(!stage.isInsidePos(enemy.pos)) stage.killChr(enemy);
+            _stage.fieldChrGrid.register(enemy);
+            if(!_stage.isInsidePos(enemy.pos)) _stage.killChr(enemy);
             enemy.frame++;
         }
 
         // bullets update
         for(const blt of bullets){
             blt.updatePos();
-            stage.fieldBltGrid.register(blt);
-            if(!stage.isInsidePos(blt.getPos())) stage.killBlt(blt);
+            _stage.fieldBltGrid.register(blt);
+            if(!_stage.isInsidePos(blt.getPos())) _stage.killBlt(blt);
         }
 
         // TODO: 当たり判定のアルゴリズムを最適化する. 複数の領域に分割して管理.
@@ -207,27 +214,27 @@ export default class Game{
 
         // -> player hits with enemy (grid)
         const {Pos, GameObj} = Util;
-        for(const nearbyChr of stage.fieldChrGrid.getObjectsOfNearbyGrids(pl.pos)){
-            if(nearbyChr === pl) continue;
-            if(!GameObj.isHittingTo(pl, nearbyChr)) continue;
+        for(const nearbyChr of _stage.fieldChrGrid.getObjectsOfNearbyGrids(_pl.pos)){
+            if(nearbyChr === _pl) continue;
+            if(!GameObj.isHittingTo(_pl, nearbyChr)) continue;
             const hittingEnemy = nearbyChr;
             console.log("hit pl <-> enemy");
 
-            Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, pl.pos));
+            Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, _pl.pos));
             hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
                 runDeath: deadEnemy => {
                     this.updateScore(s => s + deadEnemy.rewardScore);
-                    stage.killChr(deadEnemy);
+                    _stage.killChr(deadEnemy);
                 }
             });
-            pl.applyDamage(hittingEnemy.hitDmg, {
+            _pl.applyDamage(hittingEnemy.hitDmg, {
                 allowSound: true,
-                runDeath: deadPl => stage.killChr(deadPl)
+                runDeath: deadPl => _stage.killChr(deadPl)
             });
         }
         // -> enemy hits with bullet (grid)
         for(const enemy of enemies){
-            for(const nearbyBlt of stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
+            for(const nearbyBlt of _stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
                 if(!GameObj.isHittingTo(enemy, nearbyBlt)) continue;
                 const hittingBlt = nearbyBlt;
                 console.log("hit enemy <-> bullet");
@@ -235,23 +242,23 @@ export default class Game{
                 enemy.applyDamage(hittingBlt.getDmg(), {
                     allowSound: true,
                     runDeath: deadEnemy => {
-                        if(hittingBlt.getOwner() === pl) this.updateScore(s => s + deadEnemy.rewardScore);
-                        stage.killChr(deadEnemy);
+                        if(hittingBlt.getOwner() === _pl) this.updateScore(s => s + deadEnemy.rewardScore);
+                        _stage.killChr(deadEnemy);
                     }
                 });
                 Drawer.enqueueAnimation("effect_small_explode", hittingBlt.getPos());
-                stage.killBlt(hittingBlt);
+                _stage.killBlt(hittingBlt);
             }
         }
 
         // grid clear
-        stage.fieldBltGrid.clear();
-        stage.fieldChrGrid.clear();
+        _stage.fieldBltGrid.clear();
+        _stage.fieldChrGrid.clear();
 
         // unbeatable time
         const deltaMs = 1000 / FPS;
-        for(const validChr of stage.getValidChrs()) validChr.decrementUnbeatableCnt(deltaMs);
-        pl.decrementBulletShootableCnt(deltaMs);
+        for(const validChr of _stage.getValidChrs()) validChr.decrementUnbeatableCnt(deltaMs);
+        _pl.decrementBulletShootableCnt(deltaMs);
     }
 
     /**
