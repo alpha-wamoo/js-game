@@ -1,15 +1,28 @@
 /**@module Util */
 /**
- * @import {Character, Bullet, Position} from "../modules.js";
+ * @import {Vector2} from "../types/Vector2"
+ * @import {Bounds} from "../types/Bounds"
+ * @import {EnemyPool, BulletPool} from "../modules"
  */
+
+const {random, floor} = Math;
 
 /**
  * - ユーティリティメソッドを呼び出します.
  */
 export default {
     /**
+     * - 配列からランダムに要素を選択します
+     * @template T
+     * @param {T[]} ary 
+     * @returns T
+     */
+    choose(ary){
+        return ary[floor(random() * ary.length)];
+    },
+
+    /**
      * - 待機します
-     *
      * @param {number} ms 
      * @returns {Promise<void>}
      */
@@ -23,7 +36,7 @@ export default {
      * @param {number} max
      */
     randInRange(min, max){
-        return Math.random() * (max - min) + min;
+        return random() * (max - min) + min;
     },
 
     /**
@@ -32,33 +45,44 @@ export default {
      * @returns {boolean}
      */
     chance(p){
-        return Math.random() < p;
-    }
+        return random() < p;
+    },
 
     GameObj: {
         /**
-         * @param {"x" | "y"} axis 
-         * @param {Character | Bullet}
-         * @returns {{min: number, max:number}}
+         * - 矩形オブジェクトの範囲を算出します
+         * @param {EnemyPool | BulletPool} pool 
+         * @param {number} id 
+         * @returns {Bounds}
          */
-        getRange(axis, {pos, size}){
-            return { min: pos[axis] - size/2, max: pos[axis] + size/2 };
+        calcRange(pool, id){
+            const {posList, sizeList} = pool;
+            const size = sizeList[id];
+            return {
+                min: {
+                    x: posList[id].x,
+                    y: posList[id].y
+                },
+                max: {
+                    x: posList[id].x + size,
+                    y: posList[id].y + size
+                }
+            };
         },
 
         /**
-         * - 当たっていることを判定します
-         * @param {Character | Bullet} a 
-         * @param {Character | Bullet} b
+         * 二つの矩形範囲が重なっている（当たっている）ことを検出します
+         * @param {Bounds} rangeA 
+         * @param {Bounds} rangeB 
          * @returns {boolean}
          */
-        isHittingTo(a, b){
-            //x
-            const ax = this.getRange("x", a), bx = this.getRange("x", b);
-            const isHittingX = ax.min < bx.max && ax.max > bx.min;
-            //y
-            const ay = this.getRange("y", a), by = this.getRange("y", b);
-            const isHittingY = ay.min < by.max && ay.max > by.min;
-
+        isHittingTo(rangeA, rangeB){
+            const minA = rangeA.min;
+            const maxA = rangeA.max;
+            const minB = rangeB.min;
+            const maxB = rangeB.max;
+            const isHittingX = minBx <= maxA.x && minA.x <= maxB.x;
+            const isHittingY = minB.y <= maxA.y && minA.y <= maxB.y;
             return isHittingX && isHittingY;
         }
     },

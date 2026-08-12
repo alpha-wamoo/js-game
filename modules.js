@@ -3,7 +3,6 @@
  * 
  * @typedef {{x: number, y: number}} Position xy座標
  * @typedef {"right" | "left" | "up" | "down"} Direction 4方向
- * @typedef {{min: Position, max: Position}} Bounds 最小座標と最大座標によってあらわされる矩形範囲
  */
 
 // constants
@@ -17,6 +16,7 @@ export {default as Enum} from "./modules/Enum.js";
 
 export {default as JsonData} from "./modules/JsonData.js";
 export {default as GOManager} from "./modules/GOManager.js";
+export {default as BulletPool} from "./modules/BulletPool.js";
 export {default as EnemyPool} from "./modules/EnemyPool.js";
 export {default as Player} from "./modules/Player.js";
 export {default as HittingDetector} from "./modules/HittingDetector.js";

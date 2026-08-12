@@ -1,35 +1,14 @@
 /**@module Drawer */
-import {JsonData, Character, Bullet, Util, FPS, Queue} from "../modules.js";
-/**
- * @typedef {import("../modules").Position} Position
- * 
- * @typedef AnimationQueueItem
- * @property {keyof typeof AnimationDefinitionsEnum} key 
- * @property {Position} dest 
- * @property {Object} [aniOptions]
- * @property {number} [aniOptions.cntFrom]
- * @property {number} [aniOptions.scale]
- * @property {number} [aniOptions.speed]
- * 
- * @typedef DynamicTextQueueItem
- * @property {number} duration テキストが表示される期間(ms)
- * @property {Object} setter 
- * @property {(frameCnt: number) => string} setter.text テキストをセットします.
- * @property {(frameCnt: number) => string} setter.rgb 色をセットします.
- * @property {(frameCnt: number) => number} setter.px サイズ(pixel)をセットします.
- * @property {(frameCnt: number) => Position} setter.pos 描画する範囲の最小座標（左上）を指定します.
- * @property {Object} [options] 
- * @property {number} [options.frameCnt] 開始するフレーム番号を指定します. default: 0
- * @property {boolean} [options.usingCenterPos] 中心座標を用いて描画する範囲を指定します. default: false
- */
+import {JsonData, Util, FPS, Queue, BulletPool, EnemyPool, Player} from "../modules.js";
 
 /**
- * @typedef AnimationDefinition
- * @prop {string} src - 画像パス
- * @prop {number} w - 横サイズ
- * @prop {number} h - 縦サイズ
- * @prop {number} cnt - アニメーションのフレーム数
+ * @import {AnimationDefinition} from "../types/AnimationDefinition"
+ * @import {Vector2} from "../types/Vector2"
+ * @import {AnimationQueueItem} from "../types/AnimationQueueItem"
+ * @import {DynamicTextQueueItem} from "../types/DynamicTextQueueItem"
  */
+
+
 
 /**@enum {AnimationDefinition} */
 const AnimationDefinitionsEnum = {
@@ -76,6 +55,8 @@ const AnimationDefinitionsEnum = {
         cnt: 8
     }
 };
+
+const {max, random} = Math;
 
 /**
  * ゲームの背景、オブジェクト、UIを描画します.
@@ -154,7 +135,7 @@ export default class Drawer{
         const DEFAULT_SIZE = 20, DEFAULT_COLOR = "rgb(255, 255, 255)";
         const MARGIN = 40;
         const totalBoxSize = {
-            width: Math.max(...statusTexts.map(({text, size}) => this.getContext("ui").measureText(text).width * (size ?? DEFAULT_SIZE) / DEFAULT_SIZE)) + 2 * MARGIN,
+            width: max(...statusTexts.map(({text, size}) => this.getContext("ui").measureText(text).width * (size ?? DEFAULT_SIZE) / DEFAULT_SIZE)) + 2 * MARGIN,
             height: statusTexts.reduce((acc, {size}) => acc + Util.ptToPx(size ?? DEFAULT_SIZE), 0) + MARGIN
         };
         this.getContext("ui").fillStyle = "rgba(0, 0, 0, 0.25)";
@@ -208,7 +189,7 @@ export default class Drawer{
         const {CANV_W, CANV_H} = JsonData.config;
         const {TITLE_SIZE, SUBTITLE_SIZE, LINE_MARGIN} = JsonData.uiConfig.TITLE;
         const titleWidth = ctx.measureText(title).width, subtitleWidth = ctx.measureText(subtitle).width;
-        const maxWidth = Math.max(titleWidth, subtitleWidth);
+        const maxWidth = max(titleWidth, subtitleWidth);
         const totalHeight = TITLE_SIZE + LINE_MARGIN + SUBTITLE_SIZE;
         const center = { x: CANV_W/2, y: CANV_H/2 };
         const titleDrawingPos = Pos.centerToMin(center, {x: titleWidth, y: totalHeight});
@@ -276,38 +257,54 @@ export default class Drawer{
     /**
      * 与えられた弾丸を全て描画します
      * @public @static
-     * @param {Bullet[]} bullets 
+     * @param {BulletPool} pool
      */
-    static drawValidBullets(bullets){
+    static drawValidBullets(pool){
         const ctx = this.getContext("object");
-        bullets.forEach(blt => {
-            const center = blt.getCenter();
-            ctx.fillStyle = blt.getColor();
-            ctx.fillRect(center.x, center.y, blt.getSize(), blt.getSize());
-        });
+        const {colorList, sizeList} = pool;
+        for(const bulletId of pool.getValidIds()){
+            const center = pool.getCenterPos(bulletId);
+            const size = sizeList[bulletId];
+            ctx.fillStyle = colorList[bulletId];
+            ctx.fillRect(center.x, center.y, size, size);
+        }
     }
 
     /**
-     * 与えらたキャラクターすべてを描画します
+     * 与えらたEnemyすべてを描画します
      * @public @static
-     * @param {Character[]} chrs 
+     * @param {EnemyPool} pool
      */
-    static drawValidCharacters(chrs){
+    static drawValidEnemies(pool){
         const ctx = this.getContext("object");
-        chrs.forEach(chr => {
-            const center = chr.getCenter();
-            ctx.drawImage(chr.img, center.x, center.y, chr.size, chr.size);
+        const {posList, sizeList, imgList} = pool;
+        const ALPHA_AURA_COLOR = "rgb(255, 172, 172)";
+        const ALPHA_AURA_AMT = 5;
+        for(const enemyId of pool.getValidIds()){
+            const pos = posList[enemyId];
+            const size = sizeList[enemyId];
+            const AURA_RANGE = size * 1.1;
+            ctx.drawImage(imgList[enemyId], pos.x, pos.y, size, size);
+            if(!pool.isAlpha(enemyId)) return;
 
-            if(!chr.isAlpha) return;
-
-            const DOT_SIZE = chr.size/10;
-            ctx.fillStyle = "rgb(255, 172, 172)";
-            for(let i = 0; i < 5; i++){
-                const x = chr.pos.x + Math.random() * chr.size * 1.1 - chr.size * 1.1 / 2;
-                const y = chr.pos.y + Math.random() * chr.size * 1.1 - chr.size * 1.1 / 2;
+            const DOT_SIZE = size/10;
+            ctx.fillStyle = ALPHA_AURA_COLOR;
+            for(let i = 0; i < ALPHA_AURA_AMT; i++){
+                const x = pos.x + random() * AURA_RANGE - AURA_RANGE / 2;
+                const y = pos.y + random() * AURA_RANGE - AURA_RANGE / 2;
                 ctx.fillRect(x - DOT_SIZE/2, y - DOT_SIZE/2, DOT_SIZE, DOT_SIZE);
             }
-        });
+        }
+    }
+
+    /**
+     * - Playerを描画します
+     * @param {Player} pl 
+     */
+    static drawPlayer(pl){
+        const ctx = this.getContext("object");
+        const {img, pos, size} = pl;
+        ctx.drawImage(img, pos.x, pos.y, size, size);
     }
 
     /**

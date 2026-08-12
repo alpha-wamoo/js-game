@@ -1,9 +1,10 @@
-import {JsonData, Enum, SoundManager, Stage, Drawer} from "../modules.js";
+import {JsonData, Enum, SoundManager, Stage, Drawer, BulletPool} from "../modules.js";
 /**
  * @import {Vector2} from "../types/Vector2"
+ * @import {Bounds} from "../types/Bounds"
  */
 
-const {DirectionMask, PlayerHealOptionMask} = Enum;
+const {DirectionMask, PlayerHealOptionMask, SoundId, DamageOptionMask: PlayerDamageOptionMask} = Enum;
 
 export default class Player{
 
@@ -52,6 +53,18 @@ export default class Player{
     }
 
     /**
+     * - Playerの中心座標を取得します
+     * @returns {Vector2}
+     */
+    getCenterPos(){
+        const {pos, size} = this;
+        return {
+            x: pos.x + size/2,
+            y: pos.y + size/2
+        };
+    }
+
+    /**
      * 被ダメージ時の無敵時間をセットします.
      * @note 無敵時間を開始する関数ではない.
      * @param {number} time - ms
@@ -63,25 +76,49 @@ export default class Player{
     }
 
     /**
+     * - 無敵時間カウントを進めます
+     * @param {number} amt 
+     * @returns {number} - 残りの無敵時間カウント
+     */
+    decrementUnbeatableCnt(amt){
+        this.unbeatableCnt -= amt;
+        const {unbeatableCnt} = this;
+        if(unbeatableCnt < 0) this.unbeatableCnt = 0;
+        return unbeatableCnt;
+    }
+
+    /**
+     * - 弾丸発射クールタイムを進めます
+     * @param {number} amt 
+     * @returns {number} - 残りのクールタイム
+     */
+    decrementBulletShootableCnt(amt){
+        this.bulletShootableCnt -= amt;
+        const {bulletShootableCnt} = this;
+        if(bulletShootableCnt < 0) this.bulletShootableCnt = 0;
+        return bulletShootableCnt;
+    }
+
+    /**
      * - ダメージを与えます.
      * @note 死亡処理は行っていません. *runDeath*に実装してください.
      * @note 無敵時間の影響を受けます.
      * @param {number} dmg ダメージ量
-     * @param {Object} [options] 
-     * @param {boolean} [options.allowSound] 同時に音"hit"を再生します
-     * @param {(pl: Player) => void} [options.runDeath] 死亡時に実行する処理
+     * @param {number} [optionFlag=0] オプションフラグ
+     * @param {(pl: Player) => void} [runDeath] 死亡時に実行する処理
      * @returns {number} 事後hp
      */
-    applyDamage(dmg, options = {}){
+    applyDamage(dmg, optionFlag = 0, runDeath = null){
         if(this.unbeatableCnt > 0) return this.hp;
 
-        const allowSound = options?.allowSound ?? false;
-        const runDeath = options?.runDeath ?? null;
-
+        const {ALLOW_SOUND} = PlayerDamageOptionMask;
         this.unbeatableCnt = this.unbeatableTime;
         this.hp -= dmg;
-        if(allowSound) SoundManager.play("hit");
-        if(this.hp <= 0 && runDeath) runDeath(this);
+        if(optionFlag & ALLOW_SOUND !== 0) SoundManager.play(SoundId.HIT);
+        if(this.hp <= 0){
+            runDeath?.(this);
+            this.death();
+        }
         return this.hp;
     }
 
@@ -95,7 +132,7 @@ export default class Player{
         const {max_hp, pos} = this;
         this.hp += increment;
         if(optionBits & IGNORE_MAX === 0 && this.hp > max_hp) this.hp = max_hp;
-        if(optionBits & ALLOW_SOUND !== 0) SoundManager.play("heal", 1.75);
+        if(optionBits & ALLOW_SOUND !== 0) SoundManager.play(SoundId.HEAL, 1.75);
         if(optionBits & ALLOW_ANIMATION !== 0) Drawer.enqueueAnimation("heart", pos, { scale: 1.25, speed: 0.5 });
     }
 
@@ -118,5 +155,129 @@ export default class Player{
         } else if(directionBits & DirectionMask.UP !== 0 && stage.isInsidePos({ y: y - delta - size/2 })){
             pos.y = y - delta;
         }
+    }
+
+    /**
+     * 弾を発射します
+     * @param {BulletPool} bulletPool 
+     * @returns {void}
+     */
+    shootBullets(bulletPool){
+        if(this.bulletShootableCnt > 0) return;
+
+        const {ENPOWERED_BULLET, BULLET} = JsonData.config;
+        const {SHOOTABLE_INTERVAL_SEC, SPEED, SIZE, COLOR} = (this.isEnpowered) ? ENPOWERED_BULLET : BULLET;
+        shoot.call(this, { x: 0, y: -SPEED });
+        shoot.call(this, { x: SPEED, y: 0 });
+        shoot.call(this, { x: -SPEED, y: 0 });
+        if(this.isEnpowered){
+            shoot.call(this, { x: SPEED, y: -SPEED });
+            shoot.call(this, { x: -SPEED, y: -SPEED });
+            shoot.call(this, { x: 0, y: SPEED });
+        }
+        SoundManager.play(SoundId.SHOOT, 1.5);
+
+        function shoot(velo){
+            bulletPool.spawn(true, 0, this.pos, velo, this.bulletDmg, SIZE, COLOR);
+        }
+    }
+
+    /**
+     * - プレイヤーの矩形範囲を算出します
+     * @returns {Bounds}
+     */
+    calcRange(){
+        const {pos, size} = this;
+        return {
+            min: {
+                x: pos.x,
+                y: pos.y
+            },
+            max: {
+                x: pos.x + size,
+                y: pos.y + size
+            }
+        };
+    }
+
+    /**
+     * - プレイヤーの死亡処理
+     */
+    death(){
+        this.isValid = false;
+        this.hp = 0.0;
+        // TODO: 志望画面を実装
+    }
+
+    /**
+     * - 一定時間の間、移動速度が上昇します.
+     */
+    runFaster(){
+        const {SPEED_RATE, DURATION, INTERVAL, CNT_UPDATE_INTERVAL} = JsonData.skillDefinition.RUN_FASTER;
+        if(this.runnableCnt < INTERVAL) return;
+
+        this.runnableCnt = 0;
+        this.speed *= SPEED_RATE;
+        Drawer.drawAnimation("green_wind", this.pos, { scale: 1.25, speed: 0.5 });
+        SoundManager.play("run_fast");
+
+        const {runnableCnt} = this;
+        const intervalId = setInterval(() => {
+            if(runnableCnt === DURATION) this.speed /= SPEED_RATE;
+            else if(runnableCnt === INTERVAL) return clearInterval(intervalId);
+            this.runnableCnt += CNT_UPDATE_INTERVAL;
+        }, CNT_UPDATE_INTERVAL);
+    }
+
+    /**
+     * 魔法攻撃によって範囲内の敵を攻撃し、回復と一定時間のバフを付与します.
+     * @param {Stage} stage 発動するステージ
+     * @param {Game} game
+     */
+    useMagic(stage, game){
+        const {INTERVAL, ATK_REACH, DAMAGE, BUFF_DELAY_SEC, BUFF_DURATION_SEC, SPEED_RATE, CNT_UPDATE_INTERVAL} = JsonData.skillDefinition.MAGIC;
+        if(this.magicUsableCnt < INTERVAL) return;
+
+        this.magicUsableCnt = 0;
+        // const targets = stage.getValidChrs(chr => chr.typeId !== "player").filter(enemy => enemy.getDistanceTo(this.pos) <= ATK_REACH);
+
+        Drawer.drawAnimation("magic_circle", this.pos, { scale: 3, speed: 0.2 });
+        if(targets.length) SoundManager.play("gravity", 0.75);
+        targets.forEach(target => {
+            Drawer.enqueueAnimation("dark_wind", target.pos, { scale: 1.75, speed: 0.15 });
+            target.applyDamage(DAMAGE, {
+                runDeath: dead => {
+                    game.updateScore(s => s + dead.rewardScore);
+                    stage.killChr(dead);
+                }
+            });
+        });
+
+        // add buff
+        setTimeout(() => {
+            const {Pos} = Util;
+            Drawer.enqueueAnimation("buff", Pos.add(this.pos, {x:this.size * 1.2, y:0}), { speed: 0.75, scale: 1.5 });
+            this.applyHeal(3 * targets.length, { allowAnimation: true, allowSound: true });
+            this.speed *= SPEED_RATE;
+            this.isEnpowered = true;
+            this.bulletDmg *= 1.5;
+        }, BUFF_DELAY_SEC * 1000);
+
+        // rem buff
+        setTimeout(() => {
+            this.speed /= SPEED_RATE;
+            this.isEnpowered = false;
+            this.bulletDmg /= 1.5;
+        }, BUFF_DELAY_SEC * 1000 + BUFF_DURATION_SEC * 1000);
+
+        // cnt
+        const intervalId = setInterval(() => {
+            if(this.magicUsableCnt >= INTERVAL){
+                this.magicUsableCnt = INTERVAL;
+                clearInterval(intervalId);
+                return;
+            }
+            this.magicUsableCnt += CNT_UPDATE_INTERVAL;
+        }, CNT_UPDATE_INTERVAL);
     }
 }

@@ -1,27 +1,28 @@
 /**@module FieldGrid */
 import {Character, Bullet, Util} from "../modules.js";
 /**
- * @import {Position} from "../modules.js"
+ * @import {Vector2} from "../types/Vector2"
  */
 
 /**
- * @typedef {{ pos: Position }} HasPos
+ * @typedef {{ pos: Vector2 }} HasPos
  * 
- * @typedef {"character" | "bullet"} FieldObjectTypes
+ * @typedef {"player" | "enemy" | "bullet"} FieldObjectTypes
  * 
  * @typedef FieldObjects
- * @prop {Character[]} characters
- * @prop {Bullet[]} bullets
+ * @prop {number[]} characterIds
+ * @prop {number[]} bulletIds
  */
+
+const {floor} = Math;
 
 /**
  * - フィールド内で座標を持つオブジェクトを空間ごとに管理します
  * @class
- * @template T
  */
 export default class FieldGrid{
-    /**@private @type {Map<string, T[]>}*/
-    _gridObjectsMap = new Map();
+    /**@private @type {Map<string, number[]>}*/
+    _gridObjectIdsMap = new Map();
     /**@private @type {number} */
     _cellSize;
     /**@private @type {number[]} */
@@ -34,83 +35,81 @@ export default class FieldGrid{
      * @param {number} cellSize 
      */
     constructor(cellSize){
+        const DIFFS_LENGTH = 9;
         this._cellSize = cellSize;
         this._diffs = [-cellSize, 0, cellSize];
-        this._diffsOfAllNearbyGrids = Array.from({length:9}, (_, idx) => {
+        this._diffsOfAllNearbyGrids = new Array(DIFFS_LENGTH);
+        for(let idx = 0; idx < DIFFS_LENGTH; idx++){
             // 要素数9より、{diffX,diffY}は全組み合わせが表現される
-            const diffX = this._diffs[Math.floor(idx / 3)];
+            const diffX = this._diffs[floor(idx / 3)];
             const diffY = this._diffs[idx % 3];
-            return {diffX, diffY};
-        });
+            this._diffsOfAllNearbyGrids[idx] = {diffX, diffY};
+        }
     }
 
     /**
-     * @private @method
-     * @param {Position} pos
-     * @returns {Position} 属するグリッド座標
+     * @public @method
+     * @param {Vector2} pos
+     * @returns {Vector2} 属するグリッドの起点座標
      */
-    _getGridPosition(pos){
+    getGridBasePosition(pos){
+        const cellSize = this._cellSize;
         return {
-            x: Math.floor(pos.x / this._cellSize),
-            y: Math.floor(pos.y / this._cellSize)
+            x: floor(pos.x / cellSize),
+            y: floor(pos.y / cellSize)
         };
     }
 
     /**
-     * @private @method
-     * @param {Position} pos
+     * @public @method
+     * @param {Vector2} pos
      * @returns {string} グリッドを表す文字列
      */
-    _getKeyByPosition(pos){
-        const {x, y} = this._getGridPosition(pos);
+    getGridKey(pos){
+        const {x, y} = this.getGridBasePosition(pos);
         return `${x}-${y}`;
     }
 
     /**
-     * 周囲一帯9グリッド範囲でオブジェクトを取得
+     * 周囲一帯9グリッド範囲に存在するオブジェクトidを取得
      * @public @method
-     * @param {Position} pos - 探索の基準となる座標
-     * @returns {T[]}
+     * @param {Vector2} pos - 探索の基準となる座標
+     * @returns {number[]}
      */
-    getObjectsOfNearbyGrids(pos){
-        /**@type {T[]} */
-        const retObjects = [];
+    getObjectIdsOfNearbyGrids(pos){
+        /**@type {number[]} */
+        const retObjectIds = [];
 
         for(const diff of this._diffsOfAllNearbyGrids){
-            const key = this._getKeyByPosition(Util.Pos.move(pos, diff));
-            const gridObjects = this._gridObjectsMap.get(key);
-            if(!gridObjects) continue;
-            for(const gridObj of gridObjects) retObjects.push(gridObj);
+            const gridObjectIds = this.getSameGridObjectIds(Util.Pos.move(pos, diff));
+            retObjectIds.push(...gridObjectIds);
         }
-        return retObjects;
+        return retObjectIds;
     }
 
     /**
      * 同一グリッド内のオブジェクトを取得
      * @public @method
-     * @param {Position} pos 
-     * @returns {T[]}
+     * @param {Vector2} pos 
+     * @returns {number[]}
      */
-    getSameGridObjects(pos){
-        /**@type {T[]} */
-        const retObjects = [];
-        const key = this._getKeyByPosition(pos);
-        const gridObjects = this._gridObjectsMap.get(key);
-        for(const gridObj of gridObjects) retObjects.push(gridObj);
-        return retObjects;
+    getSameGridObjectIds(pos){
+        const key = this.getGridKey(pos);
+        const gridObjects = this._gridObjectIdsMap.get(key) ?? [];
+        return [...gridObjects];
     }
 
     /**
      * 座標に基づいてグリッドに割り当てます
      * @public @method
-     * @param {T & HasPos} obj - .posで座標を取得可能なゲームオブジェクト
+     * @param {number} id - ゲームオブジェクトのid
+     * @param {Vector2} pos - ゲームオブジェクトの座標
      */
-    register(obj){
-        if(!obj.pos) console.log(`オブジェクトのプロパティposを取得できません.`);
-        const key = this._getKeyByPosition(obj.pos);
-        const gridObjects = this._gridObjectsMap.get(key);
-        if(!gridObjects) this._gridObjectsMap.set(key, [obj]);
-        else gridObjects.push(obj);
+    register(id, pos){
+        const key = this.getGridKey(pos);
+        const gridObjectIds = this._gridObjectIdsMap.get(key);
+        if(!gridObjectIds) this._gridObjectIdsMap.set(key, [id]);
+        else gridObjects.push(id);
     }
 
     /**
@@ -118,6 +117,6 @@ export default class FieldGrid{
      * @public @method
      */
     clear(){
-        this._gridObjectsMap.clear();
+        this._gridObjectIdsMap.clear();
     }
 }

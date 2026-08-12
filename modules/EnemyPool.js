@@ -1,11 +1,12 @@
 /**
  * @import {Vector2} from "../types/Vector2"
  */
-import {JsonData, Enum, Util, FPS} from "../modules.js";
+import {JsonData, Enum, Util, FPS, SoundManager} from "../modules.js";
 
 const {CANV_W, CANV_H} = JsonData.config;
 const N_RANDOMS = 6;
-const {randInRange, chance} = Util;
+const {EnemyTypeId, DamageOptionMask, SoundId} = Enum;
+const {randInRange, chance, choose} = Util;
 const {sin, cos, min, floor, ceil, random, PI} = Math;
 
 /**@type {((size: number) => Vector2)[]} */
@@ -93,11 +94,11 @@ export default class EnemyPool{
      * @param {number} length - Enemyの最大数(0-255)
      */
     constructor(length){
-        const bitFlagsArrayLength = ceil(length / 32);
+        const flagsArrayLength = ceil(length / 32);
         this._poolSize = length;
 
         /**@type {Uint32Array} */
-        this.validStateFlags = new Uint32Array(bitFlagsArrayLength);
+        this.validFlags = new Uint32Array(flagsArrayLength);
         /**@type {Uint16Array} */
         this.sizeList = new Uint16Array(length);
         /**@type {Uint8Array} */
@@ -125,7 +126,7 @@ export default class EnemyPool{
         /**@type {Float32Array[]} */
         this.randomsList = new Array(length);
         /**@type {Uint32Array} */
-        this.alphaStateFlags = new Uint32Array(bitFlagsArrayLength);
+        this.alphaStateFlags = new Uint32Array(flagsArrayLength);
         /**@type {Uint8Array} */
         this.motionIdList = new Uint8Array(length);
 
@@ -143,21 +144,32 @@ export default class EnemyPool{
      * @param {number} id 
      */
     reloadRandoms(id){
-        for(let i = 0; i < N_RANDOMS; i++) this.randomsList[id][i] = random();
+        const randoms = this.randomsList[id];
+        for(let i = 0; i < N_RANDOMS; i++) randoms[i] = random();
+    }
+
+    /**
+     * - ランダムな種類のEnemyを出現させます
+     * @returns {number?}
+     */
+    spawnRandomType(){
+        const randomTypeId = choose(Object.values(Enum.EnemyTypeId));
+        return this.spawn(randomTypeId);
     }
 
     /**
      * - 新たに敵を出現させます
      * @param {number} typeId 
+     * @returns {number?} - 生成されたEnemyのID。プールが満杯の場合はnullを返す
      */
     spawn(typeId){
-        const freeId = this._freeIdStack.pop();
-        if(!freeId) throw new Error("新たに敵を出現させるためのプールの空きがありません");
+        const id = this._freeIdStack.pop();
+        if(!id) return null;
 
-        const bitFlagsIdx = freeId >>> 5;
-        const bitIdx = freeId & 0b11111;
+        const bitFlagsIdx = id >>> 5; // 32で割った商
+        const bitIdx = id & 0b11111; // 32で割った余り
         const mask = 1 << bitIdx;
-        if(this.validStateFlags[bitFlagsIdx] & mask) return;
+        if(this.validFlags[bitFlagsIdx] & mask !== 0) return;
 
         const {IMG_SRC, SIZE, SPEED, MAX_HP, HIT_DMG, REWARD_SCORE, MOTION_KEY, EXIST_ALPHA} = JsonData.enemiesDefinition[typeId];
         const {ALPHA_RATE} = JsonData.config.ENEMY;
@@ -165,26 +177,24 @@ export default class EnemyPool{
         const spawnPos = EnemyPool.spawnPosGetters[motionId](SIZE);
         const isAlpha = EXIST_ALPHA && chance(ALPHA_RATE);
 
-        this.validStateFlags[bitFlagsIdx] |= mask;
-        this.sizeList[freeId] = SIZE;
-        this.frameList[freeId] = 0;
-        this.imgList[freeId].src = IMG_SRC;
-        this.speedList[freeId] = SPEED;
-        this.typeIdList[freeId] = typeId;
-        this.hitDmgList[freeId] = HIT_DMG;
-        this.maxHpList[freeId] = MAX_HP;
-        this.hpList[freeId] = MAX_HP;
-        this.rewardScoreList[freeId] = REWARD_SCORE;
-        this.posBeginList[freeId] = spawnPos;
-        this.posList[freeId] = {...spawnPos};
-        this.alphaStateFlags[bitFlagsIdx] &= ~mask;
+        this.validFlags[bitFlagsIdx] |= mask; // trueにする
+        this.sizeList[id] = SIZE;
+        this.frameList[id] = 0;
+        this.imgList[id].src = IMG_SRC;
+        this.speedList[id] = SPEED;
+        this.typeIdList[id] = typeId;
+        this.hitDmgList[id] = HIT_DMG;
+        this.maxHpList[id] = MAX_HP;
+        this.hpList[id] = MAX_HP;
+        this.rewardScoreList[id] = REWARD_SCORE;
+        this.posBeginList[id] = spawnPos;
+        this.posList[id] = {...spawnPos};
+        this.alphaStateFlags[bitFlagsIdx] &= ~mask; // falseにする
         this.alphaStateFlags[bitFlagsIdx] |= isAlpha << bitIdx;
-        this.motionIdList[freeId] = motionId;
-
-        // randoms 初期化
-        for(let i = 0; i < N_RANDOMS; i++) this.randomsList[freeId][i] = random();
-
-        if(isAlpha) this.toAlpha(freeId);
+        this.motionIdList[id] = motionId;
+        this.reloadRandoms(id);
+        if(isAlpha) this.toAlpha(id);
+        return id;
     }
 
     /**
@@ -192,7 +202,7 @@ export default class EnemyPool{
      * @param {number} id 
      */
     despawn(id){
-        const {validStateFlags, _freeIdStack} = this;
+        const {validFlags: validStateFlags, _freeIdStack} = this;
         const bitFlagsIdx = id >>> 5;
         const bitIdx = id & 0b11111;
         const mask = 1 << bitIdx;
@@ -204,18 +214,22 @@ export default class EnemyPool{
 
     /**
      * - ダメージを与えます.
-     * @note 死亡処理は行っていません. *runDeath*に実装してください.
      * @param {number} id 
      * @param {number} dmg ダメージ量
-     * @param {Object} [options] 
-     * @param {(pool: EnemyPool) => void} [options.runDeath] 死亡時に実行する処理
+     * @param {number} [optionFlag=0] オプションフラグ
+     * @param {(pool: EnemyPool) => void} [runDeath] 死亡時に実行する処理
      * @returns {number} 事後hp
      */
-    applyDamage(id, dmg, options = {}){
-        const runDeath = options?.runDeath ?? null;
-        this.hpList[id] -= dmg;
-        if(this.hpList[id] <= 0 && runDeath) runDeath(this);
-        return this.hpList[id];
+    applyDamage(id, dmg, optionFlag = 0, runDeath = null){
+        const {hpList} = this;
+        const {ALLOW_SOUND} = DamageOptionMask;
+        hpList[id] -= dmg;
+        if(optionFlag & ALLOW_SOUND !== 0) SoundManager.play(SoundId.HIT);
+        if(hpList[id] <= 0){
+            runDeath?.(this);
+            this.despawn(id);
+        }
+        return hpList[id];
     }
 
     /**
@@ -223,12 +237,12 @@ export default class EnemyPool{
      * @param {number} id
      */
     toAlpha(id){
-        const {SPEED_RATE, DMG_RATE, HP_RATE, SIZE_RATE, REWARD_RATE} = JsonData.config.ENEMY.ALPHA;
-        if(this.alphaStateFlags[id >>> 5] ) return;
         const bitFlagsIdx = id >>> 5;
         const bitIdx = id & 0b11111;
         const mask = 0b1 << bitIdx;
+        if(this.alphaStateFlags[bitFlagsIdx] & mask !== 0) return;
 
+        const {SPEED_RATE, DMG_RATE, HP_RATE, SIZE_RATE, REWARD_RATE} = JsonData.config.ENEMY.ALPHA;
         this.alphaStateFlags[bitFlagsIdx] |= mask;
         this.speedList[id] *= SPEED_RATE;
         this.hitDmgList[id] *= DMG_RATE;
@@ -247,7 +261,33 @@ export default class EnemyPool{
         const bitIdx = id & 0b11111;
         const mask = 1 << bitIdx;
 
-        return (this.validStateFlags[bitFlagsIdx] & mask) !== 0;
+        return (this.validFlags[bitFlagsIdx] & mask) !== 0;
+    }
+
+    /**
+     * - α体かどうかを検出します
+     * @param {number} id 
+     * @returns {boolean}
+     */
+    isAlpha(id){
+        const bitFlagsIdx = id >>> 5;
+        const bitIdx = id & 0b11111;
+        const mask = 1 << bitIdx;
+
+        return (this.alphaStateFlags[bitFlagsIdx] & mask) !== 0
+    }
+
+    /**
+     * - 有効なEnemyのidを全て取得します
+     * @returns {number[]}
+     */
+    getValidIds(){
+        const {_poolSize} = this;
+        const validIds = [];
+        for(let id = 0; id < _poolSize; id++){
+            if(this.isValid(id)) validIds.push(id);
+        }
+        return validIds;
     }
 
     /**
@@ -255,12 +295,24 @@ export default class EnemyPool{
      */
     moveEnemies(){
         const {isValid, _poolSize, motionIdList, posList} = this;
-        const {motionPatterns} = EnemyPool;
         for(let id = 0; id < _poolSize; id++){
             if(!isValid(id)) continue;
 
             const motionId = motionIdList[id];
             posList[id] = motionPatterns[motionId](this, id);
         }
+    }
+
+    /**
+     * - Enemyを移動させます
+     * @param {number} id 
+     * @returns {Vector2}
+     */
+    move(id){
+        const {motionIdList, posList} = this;
+        const motionId = motionIdList[id];
+        const pos = motionPatterns[motionId](this, id);
+        posList[id] = pos;
+        return pos;
     }
 }

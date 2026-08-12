@@ -14,7 +14,7 @@ import {default as constructDTO} from "./worker/HittingDetector.js";
  * @prop {HTMLCanvasElement} ui
  */
 
-const {DirectionMask} = Enum;
+const {DirectionMask, KeyMasks, KeyIdxs, SoundId, PlayerHealOptionMask, DamageOptionMask} = Enum;
 
 /**
  * - ゲームの初期化、開始、ゲームループを行います.
@@ -62,8 +62,7 @@ export default class Game{
      * @returns {Game} this
      */
     static async init(canvs, ctxs, stage){
-        const game = new Game(canvs, ctxs, stage)
-        .setPlayer(await stage.spawnChr("player"));
+        const game = new Game(canvs, ctxs, stage).setPlayer(new Player());
         await Drawer.setContexts(game._contexts);
         Drawer.replaceBG(JsonData.bgDefinition.DEFAULT);
 
@@ -72,11 +71,11 @@ export default class Game{
 
     /**
      * - ゲームを開始します.
-     * @public
+     * @public @async
      * @method
      * @returns {void}
      */
-    start(){
+    async start(){
         const operationCanv = document.getElementById("ui");
         // const operationCanv = this._canvs.ui;
         operationCanv.focus();
@@ -87,11 +86,15 @@ export default class Game{
         operationCanv.onblur = ev => Keyboard.clear();
 
         // sound
-        SoundManager.play("start");
-        this._bgm = SoundManager.play("battle_bgm_default");
+        SoundManager.play(SoundId.START);
+        this._bgm = await SoundManager.play(SoundId.BATTLE_BGM_DEFAULT);
 
         // call interval
-        this._boundMainLoop();
+        try {
+            this._boundMainLoop();
+        } catch (error) {
+            console.error("Error occurred in main loop:", error);
+        }
     }
 
     finish(){
@@ -104,14 +107,13 @@ export default class Game{
      */
     mainLoop(){
         const {_pl, _stage} = this;
-        const {ALLOW_SOUND, ALLOW_ANIMATION} = Enum.PlayerHealOptionMask;
+        const {ALLOW_SOUND, ALLOW_ANIMATION} = PlayerHealOptionMask;
         Drawer.clear("object");
         Drawer.clear("ui");
 
-        _pl = _stage._validChrs.find(chr => chr.typeId === "player");
         const {NATURAL_HEAL, BULLET} = JsonData.config;
-        if(this.isInterval(0.5 * 1000)) _stage.spawnRandEnemy();
-        if(this.isInterval(1000)) updateScore(s => s + 1, false);
+        if(this.isInterval(0.5 * 1000)) _stage.enemyPool.spawnRandomType();
+        if(this.isInterval(1000)) this.updateScore(s => s + 1, false);
         if(this.isInterval(NATURAL_HEAL.INTERVAL)) _pl?.applyHeal(NATURAL_HEAL.HP, ALLOW_SOUND | ALLOW_ANIMATION);
 
         this.updateFrame();
@@ -129,43 +131,42 @@ export default class Game{
      */
     updateFrame(){
         const {_pl, _stage} = this;
-        const enemies = _stage.getValidChrs(chr => chr !== _pl);
-        const bullets = _stage.getValidBlts();
+        const {enemyPool, bulletPool, fieldEnGrid, fieldBltGrid} = _stage;
+        const enemieIds = enemyPool.getValidIds();
+        const bulletIds = bulletPool.getValidIds();
 
         // score
         // TODO: score
 
         // keyboard monitor
-        Keyboard.updateC();
-        // TODO: ここをCにする
-        // if(Keyboard.isPressed("d")) _pl.move(_stage, Direction.RIGHT);
-        // if(Keyboard.isPressed("a")) _pl.move(_stage, Direction.LEFT);
-        // if(Keyboard.isPressed("w")) _pl.move(_stage, Direction.UP);
-        // if(Keyboard.isPressed("s")) _pl.move(_stage, Direction.DOWN);
+        // Keyboard.updateC();
+
         let directionBits = 0b0;
-        if(Keyboard.isPressed("d")) directionBits |= DirectionMask.RIGHT;
-        if(Keyboard.isPressed("a")) directionBits |= DirectionMask.LEFT;
-        if(Keyboard.isPressed("w")) directionBits |= DirectionMask.UP;
-        if(Keyboard.isPressed("s")) directionBits |= DirectionMask.DOWN;
+        if(Keyboard.isPressedAny(KeyMasks[KeyIdxs["d"]])) directionBits |= DirectionMask.RIGHT;
+        if(Keyboard.isPressedAny(KeyMasks[KeyIdxs["a"]])) directionBits |= DirectionMask.LEFT;
+        if(Keyboard.isPressedAny(KeyMasks[KeyIdxs["w"]])) directionBits |= DirectionMask.UP;
+        if(Keyboard.isPressedAny(KeyMasks[KeyIdxs["s"]])) directionBits |= DirectionMask.DOWN;
         _pl.move(_stage, directionBits);
-        if(Keyboard.isPressed(" ")) _pl.shootBullet(_stage);
-        if(Keyboard.isAllPressed("shift", "enter")) _pl.useMagic(_stage, this);
-        else if(Keyboard.isPressed("enter")) _pl.runFaster();
+        if(Keyboard.isPressedAny(KeyMasks[KeyIdxs[" "]])) _pl.shootBullets(bulletPool);
+        if(Keyboard.isPressedAll(KeyMasks[KeyIdxs["shift"]] | KeyMasks[KeyIdxs["enter"]])) _pl.useMagic(_stage, this);
+        else if(Keyboard.isPressedAny(KeyMasks[KeyIdxs["enter"]])) _pl.runFaster();
 
         // enemies update
-        for(const enemy of enemies){
-            enemy.enemyMove();
-            // TODO: fieldGridを座標から更新
-            _stage.fieldChrGrid.register(enemy);
-            if(!_stage.isInsidePos(enemy.pos)) _stage.killChr(enemy);
-            enemy.frame++;
+        for(const enemyId of enemieIds){
+            const {posList, frameList} = enemyPool;
+            enemyPool.move(enemyId);
+            const enemyPos = posList[enemyId];
+            fieldEnGrid.register(enemyId, enemyPos);
+            if(!_stage.isInsidePos(enemyPos)) enemyPool.despawn(enemyId);
+            frameList[enemyId]++;
         }
 
         // bullets update
-        for(const blt of bullets){
-            blt.updatePos();
-            _stage.fieldBltGrid.register(blt);
-            if(!_stage.isInsidePos(blt.getPos())) _stage.killBlt(blt);
+        for(const bulletId of bulletIds){
+            const {posList} = bulletPool;
+            const bulletPos = bulletPool.move(bulletId);
+            fieldBltGrid.register(bulletId, bulletPos);
+            if(!_stage.isInsidePos(bulletPos)) bulletPool.despawn(bulletId);
         }
 
         // TODO: 当たり判定のアルゴリズムを最適化する. 複数の領域に分割して管理.
@@ -214,50 +215,67 @@ export default class Game{
 
         // -> player hits with enemy (grid)
         const {Pos, GameObj} = Util;
-        for(const nearbyChr of _stage.fieldChrGrid.getObjectsOfNearbyGrids(_pl.pos)){
-            if(nearbyChr === _pl) continue;
-            if(!GameObj.isHittingTo(_pl, nearbyChr)) continue;
-            const hittingEnemy = nearbyChr;
+        const {isHittingTo, calcRange} = GameObj;
+        const plRange = _pl.calcRange();
+        const {posList, hitDmgList, rewardScoreList} = enemyPool;
+        for(const enemyId of fieldEnGrid.getObjectIdsOfNearbyGrids(_pl.pos)){
+            const enemyRange = calcRange(enemyPool, enemyId);
+            if(!isHittingTo(plRange, enemyRange)) continue;
+
             console.log("hit pl <-> enemy");
+            Drawer.enqueueAnimation("effect_small_explode", Pos.ave(posList[enemyId], _pl.pos));
+            enemyPool.applyDamage(enemyId, hitDmgList[enemyId] * 2.5 / FPS, DamageOptionMask.ALLOW_SOUND,
+                pool => this.updateScore(s => s + rewardScoreList[enemyId])
+            );
+            _pl.applyDamage(hitDmgList[enemyId], DamageOptionMask.ALLOW_SOUND);
 
-            Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, _pl.pos));
-            hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
-                runDeath: deadEnemy => {
-                    this.updateScore(s => s + deadEnemy.rewardScore);
-                    _stage.killChr(deadEnemy);
-                }
-            });
-            _pl.applyDamage(hittingEnemy.hitDmg, {
-                allowSound: true,
-                runDeath: deadPl => _stage.killChr(deadPl)
-            });
         }
-        // -> enemy hits with bullet (grid)
-        for(const enemy of enemies){
-            for(const nearbyBlt of _stage.fieldBltGrid.getObjectsOfNearbyGrids(enemy.pos)){
-                if(!GameObj.isHittingTo(enemy, nearbyBlt)) continue;
-                const hittingBlt = nearbyBlt;
-                console.log("hit enemy <-> bullet");
+        // for(const nearbyChr of _stage.fieldChrGrid.getObjectIdsOfNearbyGrids(_pl.pos)){
+        //     if(nearbyChr === _pl) continue;
+        //     if(!GameObj.isHittingTo(_pl, nearbyChr)) continue;
+        //     const hittingEnemy = nearbyChr;
+        //     console.log("hit pl <-> enemy");
 
-                enemy.applyDamage(hittingBlt.getDmg(), {
-                    allowSound: true,
-                    runDeath: deadEnemy => {
-                        if(hittingBlt.getOwner() === _pl) this.updateScore(s => s + deadEnemy.rewardScore);
-                        _stage.killChr(deadEnemy);
+        //     Drawer.enqueueAnimation("effect_small_explode", Pos.ave(hittingEnemy.pos, _pl.pos));
+        //     hittingEnemy.applyDamage(hittingEnemy.hitDmg * 2.5 / FPS, {
+        //         runDeath: deadEnemy => {
+        //             this.updateScore(s => s + deadEnemy.rewardScore);
+        //             _stage.killChr(deadEnemy);
+        //         }
+        //     });
+        //     _pl.applyDamage(hittingEnemy.hitDmg, {
+        //         allowSound: true,
+        //         runDeath: deadPl => _stage.killChr(deadPl)
+        //     });
+        // }
+        // -> enemy hits with bullet (grid)
+        for(const enemyId of enemieIds){
+            const enemyRange = calcRange(enemyPool, enemyId);
+            for(const bulletId of fieldBltGrid.getObjectIdsOfNearbyGrids(posList[enemyId])){
+                const bulletRange = calcRange(bulletPool, bulletId);
+                if(!isHittingTo(enemyRange, bulletRange)) continue;
+
+                console.log("hit enemy <-> bullet");
+                enemyPool.applyDamage(enemyId, bulletPool.dmgList[bulletId], DamageOptionMask.ALLOW_SOUND,
+                    pool => {
+                        const flagsIdx = bulletId >>> 5;
+                        const bitIdx = bulletId & 0b11111;
+                        const mask = 1 << bitIdx;
+                        if(bulletPool.isPlayerOwnerFlags[flagsIdx] & mask !== 0) this.updateScore(s => s + rewardScoreList[enemyId]);
                     }
-                });
-                Drawer.enqueueAnimation("effect_small_explode", hittingBlt.getPos());
-                _stage.killBlt(hittingBlt);
+                );
+                Drawer.enqueueAnimation("effect_small_explode", bulletPool.posList[bulletId]);
+                bulletPool.despawn(bulletId);
             }
         }
 
         // grid clear
-        _stage.fieldBltGrid.clear();
-        _stage.fieldChrGrid.clear();
+        fieldBltGrid.clear();
+        fieldEnGrid.clear();
 
         // unbeatable time
         const deltaMs = 1000 / FPS;
-        for(const validChr of _stage.getValidChrs()) validChr.decrementUnbeatableCnt(deltaMs);
+        _pl.decrementUnbeatableCnt(deltaMs);
         _pl.decrementBulletShootableCnt(deltaMs);
     }
 
@@ -268,22 +286,24 @@ export default class Game{
      */
     // TODO: 動的要素もキューからまとめて描画する実装に変更
     drawFrame(){
-        const stage = this._stage;
-        const enemies = stage.getValidChrs(chr => chr.typeId !== "player");
+        const {_stage, _pl, _score} = this;
+        const {enemyPool, bulletPool} = _stage;
+        const enemyIds = enemyPool.getValidIds();
         const timeFromStart = this.getTimeFromStart();
-    
+
         Drawer.drawStatusField("Arial", [
             { size: 45, text: `[ ${timeFromStart.min} : ${timeFromStart.sec} ]` },
-            { size: 25,text: `SCORE: ${this._score}` }
+            { size: 25,text: `SCORE: ${_score}` }
         ]);
-        Drawer.drawValidBullets(stage.getValidBlts());
-        Drawer.drawValidCharacters(stage.getValidChrs());
+        Drawer.drawValidBullets(bulletPool);
+        Drawer.drawValidEnemies(enemyPool);
+        Drawer.drawPlayer(_pl);
 
         // ゲージを描画
-        Drawer.drawEnemiesHealthBar(enemies, "rgb(225, 200, 255)", "rgb(166, 41, 149)");
-        Drawer.drawPlayerHealthBar(this._pl, "rgb(168, 5, 105)", "rgb(67, 111, 255)");
-        Drawer.drawRunnableBar(this._pl.runnableCnt);
-        Drawer.drawMagicUsableBar(this._pl.magicUsableCnt);
+        Drawer.drawEnemiesHealthBar(enemyIds, "rgb(225, 200, 255)", "rgb(166, 41, 149)");
+        Drawer.drawPlayerHealthBar(_pl, "rgb(168, 5, 105)", "rgb(67, 111, 255)");
+        Drawer.drawRunnableBar(_pl.runnableCnt);
+        Drawer.drawMagicUsableBar(_pl.magicUsableCnt);
 
         // エンキューされた動的要素をまとめて描画
         Drawer.drawQueuedAnimations();
@@ -313,8 +333,7 @@ export default class Game{
 
     /**
      * - スコアを与えた関数によって変更します.
-     * @private
-     * @method
+     * @private @method
      * @param {(score: number) => number} operation - 更新処理
      * @param {boolean} [allowPopup] - スコア変化量のポップアップを描画します. default: true.
      * @returns {number} 更新後のスコア

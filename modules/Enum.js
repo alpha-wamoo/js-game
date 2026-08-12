@@ -1,28 +1,38 @@
-export default {
-    EnemyTypeId: {
+/**
+ * @import {SoundDefinition} from "../types/SoundDefinition"
+ */
+
+/**
+ * - Enumを提供します
+ */
+export default Object.freeze({
+    EnemyTypeId: Object.freeze({
         BASIC: 0,
         TOUGH: 1,
         SMALL: 2,
         TRICKY: 3
-    },
-    EnemyMotionId: {
+    }),
+    EnemyMotionId: Object.freeze({
         SIMPLY_DOWN: 0,
         SIN: 1,
         H_PARABOLA: 2,
         CYCLIC: 3
-    },
-    DirectionMask: {
+    }),
+    DirectionMask: Object.freeze({
         RIGHT: 1 << 0,
         LEFT: 1 << 1,
         DOWN: 1 << 2,
         UP: 1 << 3
-    },
-    PlayerHealOptionMask: {
+    }),
+    PlayerHealOptionMask: Object.freeze({
         IGNORE_MAX: 1 << 0,
         ALLOW_SOUND: 1 << 1,
         ALLOW_ANIMATION: 1 << 2
-    },
-    SoundIdDefinitions: {
+    }),
+    DamageOptionMask: Object.freeze({
+        ALLOW_SOUND: 1 << 0
+    }),
+    SoundId: Object.freeze({
         // SE
         START: 0,
         SHOOT: 1,
@@ -33,8 +43,9 @@ export default {
         GRAVITY: 6,
         // BGM
         BATTLE_BGM_DEFAULT: 7
-    },
-    SoundDefinitions: [
+    }),
+    /**@type {Readonly<SoundDefinition[]>} */
+    SoundDefinitions: Object.freeze([
         // SE
         {
             src: "./sounds/slash-sword.mp3"
@@ -69,5 +80,23 @@ export default {
             volume: 0.2,
             loop: true
         }
-    ]
-};
+    ]),
+    KeyMasks = Object.freeze([
+        1 << 0,
+        1 << 1,
+        1 << 2,
+        1 << 3,
+        1 << 4,
+        1 << 5,
+        1 << 6
+    ]),
+    KeyIdxs = Object.freeze({
+        "w": 0,
+        "a": 1,
+        "s": 2,
+        "d": 3,
+        "shift": 4,
+        " ": 5,
+        "enter": 6
+    })
+});
