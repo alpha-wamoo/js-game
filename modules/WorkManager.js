@@ -12,7 +12,7 @@
 export default class WorkManager{
     /**@private @static @enum {Worker} */
     static _workers = {
-        "HittingDetector": new Worker("./modules/worker/HittingDetector.js", { type: "module" })
+        "HittingDetector": new Worker("./worker/HittingDetector.js", { type: "module" })
     };
 
     /** @private @static @type {number} */
