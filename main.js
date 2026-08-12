@@ -1,4 +1,4 @@
-import {Game, Stage, Util, JsonData, C, Keyboard} from "./modules.js";
+import {Game, Stage, Util, JsonData, Keyboard} from "./modules.js";
 
 const canvs = {
 	bg: loadCanvas("bg"),
